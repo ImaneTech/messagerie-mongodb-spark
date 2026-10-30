@@ -1,0 +1,58 @@
+services:
+  mongo1:
+    image: mongo:7
+    container_name: mongo1
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    ports: ["27017:27017"]
+    volumes: [mongo1-data:/data/db]
+
+  mongo2:
+    image: mongo:7
+    container_name: mongo2
+    command: mongod --replSet rs0 --bind_ip_all --port 27018
+    ports: ["27018:27018"]
+    volumes: [mongo2-data:/data/db]
+
+  spark-master:
+    image: apache/spark:3.5.1-python3
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
+    environment:
+      SPARK_PUBLIC_DNS: ${IP_A}
+    ports:
+      - "18080:8080"
+      - "7077:7077"
+    volumes:
+      - ../spark:/opt/spark-jobs
+
+  spark-worker1:
+    image: apache/spark:3.5.1-python3
+    container_name: spark-worker1
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      SPARK_PUBLIC_DNS: ${IP_A}
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+    ports:
+      - "18081:8081"
+    depends_on:
+      - spark-master
+
+  spark-worker2:
+    image: apache/spark:3.5.1-python3
+    container_name: spark-worker2
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      SPARK_PUBLIC_DNS: ${IP_A}
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+    ports:
+      - "18082:8081"
+    depends_on:
+      - spark-master
+
+volumes:
+  mongo1-data:
+    name: pc-a_mongo1-data
+  mongo2-data:
+    name: pc-a_mongo2-data
