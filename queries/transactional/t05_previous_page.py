@@ -1,12 +1,12 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from pymongo import DESCENDING
 from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed
+from queries.utils import get_db, timed, record_benchmark, extract_index_name
 
-def run(conversation_id=None, before_ts=None, limit=50):
-    """
-    T05: Pagination vers l'arrière (page précédente).
-    Query sur messages avec keyset pagination: filter conversation_id et ts < before_ts, sort ts descendante, limit 50.
-    """
+def get_query(conversation_id=None, before_ts=None, limit=50):
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
     conversations = db[COLLECTIONS["conversations"]]
@@ -14,22 +14,45 @@ def run(conversation_id=None, before_ts=None, limit=50):
     if not conversation_id:
         conv = conversations.find_one()
         if not conv:
-            return []
+            return None, None
         conversation_id = conv["_id"]
 
     query = {"conversation_id": conversation_id, "deleted": False}
     if before_ts:
         query["ts"] = {"$lt": before_ts}
     else:
-        # Récupère le timestamp du 20ème message le plus récent pour simuler une pagination antérieure
         sample = list(messages.find(query).sort("ts", DESCENDING).skip(10).limit(1))
         if sample:
             query["ts"] = {"$lt": sample[0]["ts"]}
 
     cursor = messages.find(query).sort("ts", DESCENDING).limit(limit)
+    return messages, cursor
+
+def run(conversation_id=None, before_ts=None, limit=50):
+    """
+    T05: Pagination vers l'arrière (page précédente).
+    Query sur messages avec keyset pagination: filter conversation_id et ts < before_ts, sort ts descendante, limit 50.
+    """
+    _, cursor = get_query(conversation_id, before_ts, limit)
+    if not cursor:
+        return []
     return list(cursor)
+
+def explain_plan(conversation_id=None, before_ts=None, limit=50):
+    """Exécute et retourne le plan d'exécution explain()."""
+    _, cursor = get_query(conversation_id, before_ts, limit)
+    if not cursor:
+        return {}
+    return cursor.explain()
 
 if __name__ == "__main__":
     msgs = run()
     avg_ms = timed(run, runs=5)
-    print(f"T05 exécuté : {len(msgs)} messages de la page précédente. Temps moyen : {avg_ms:.2f} ms")
+    plan = explain_plan()
+    index_name = extract_index_name(plan)
+
+    record_benchmark("T05", avg_ms, {
+        "description": "Pagination précédente",
+        "index_used": index_name
+    })
+    print(f"T05 exécuté : {len(msgs)} messages récupérés (Index: {index_name}). Temps moyen : {avg_ms:.2f} ms")
