@@ -1,5 +1,9 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed
+from queries.utils import get_db, timed, record_benchmark
 
 def run(conversation_id=None, user_id=None, action="add"):
     """
@@ -15,7 +19,6 @@ def run(conversation_id=None, user_id=None, action="add"):
         if not group_conv:
             return None
         conversation_id = group_conv["_id"]
-        # Trouver un utilisateur qui n'est pas déjà dans le groupe
         member_ids = {p["user_id"] for p in group_conv["participants"]}
         candidate = users.find_one({"_id": {"$nin": list(member_ids)}})
         if not candidate:
@@ -44,4 +47,5 @@ if __name__ == "__main__":
     added = run(action="add")
     removed = run(action="remove")
     avg_ms = timed(lambda: run(action="add"), runs=3)
+    record_benchmark("T08", avg_ms, {"description": "Ajout/retrait de participant"})
     print(f"T08 exécuté : Add={added}, Remove={removed}. Temps moyen : {avg_ms:.2f} ms")
