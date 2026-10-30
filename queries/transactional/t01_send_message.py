@@ -1,7 +1,10 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import uuid
 from datetime import datetime, timezone
 from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed
+from queries.utils import get_db, timed, record_benchmark
 
 def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text", attachment=None):
     """
@@ -12,7 +15,6 @@ def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text"
     messages = db[COLLECTIONS["messages"]]
     conversations = db[COLLECTIONS["conversations"]]
 
-    # Sélection dynamique si non fourni
     if not conversation_id or not sender_id:
         conv = conversations.find_one()
         if not conv:
@@ -47,4 +49,5 @@ def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text"
 if __name__ == "__main__":
     res = run()
     avg_ms = timed(run, runs=5)
+    record_benchmark("T01", avg_ms, {"description": "Envoi d'un message instantané"})
     print(f"T01 exécuté : Message envoyé ({res['_id']}). Temps moyen : {avg_ms:.2f} ms")

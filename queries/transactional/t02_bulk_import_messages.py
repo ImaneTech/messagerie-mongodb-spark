@@ -1,8 +1,11 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import uuid
 from datetime import datetime, timezone, timedelta
 from pymongo import InsertOne
 from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed
+from queries.utils import get_db, timed, record_benchmark
 
 def run(conversation_id=None, sender_id=None, count=100):
     """
@@ -50,4 +53,5 @@ def run(conversation_id=None, sender_id=None, count=100):
 if __name__ == "__main__":
     inserted = run(count=50)
     avg_ms = timed(lambda: run(count=50), runs=3)
+    record_benchmark("T02", avg_ms, {"count": 50, "description": "Import en masse de 50 messages"})
     print(f"T02 exécuté : {inserted} messages insérés via bulk_write. Temps moyen : {avg_ms:.2f} ms")
