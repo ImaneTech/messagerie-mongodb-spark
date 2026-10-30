@@ -1,0 +1,96 @@
+{
+  "T01": {
+    "time_ms": 32.216,
+    "details": {
+      "description": "Envoi d'un message instantané"
+    }
+  },
+  "T02": {
+    "time_ms": 31.181,
+    "details": {
+      "count": 50,
+      "description": "Import en masse de 50 messages"
+    }
+  },
+  "T03": {
+    "time_ms": 10.135,
+    "details": {
+      "description": "Consultation du profil utilisateur"
+    }
+  },
+  "T04": {
+    "time_ms": 19.745,
+    "details": {
+      "description": "50 derniers messages d'une conversation",
+      "index_used": "idx_messages_conv_ts"
+    }
+  },
+  "T05": {
+    "time_ms": 16.676,
+    "details": {
+      "description": "Pagination précédente",
+      "index_used": "idx_messages_conv_ts"
+    }
+  },
+  "T06": {
+    "time_ms": 13.822,
+    "details": {
+      "description": "Lister les conversations d'un utilisateur",
+      "index_used": "idx_conversations_user_last_msg"
+    }
+  },
+  "T07": {
+    "time_ms": 23.207,
+    "details": {
+      "description": "Création d'un groupe de discussion"
+    }
+  },
+  "T08": {
+    "time_ms": 26.815,
+    "details": {
+      "description": "Ajout/retrait de participant"
+    }
+  },
+  "T09": {
+    "time_ms": 32.259,
+    "details": {
+      "description": "Modification d'un message"
+    }
+  },
+  "T10": {
+    "time_ms": 21.635,
+    "details": {
+      "description": "Suppression douce (soft delete)"
+    }
+  },
+  "T11": {
+    "time_ms": 20.84,
+    "details": {
+      "description": "Ajout d'une réaction emoji"
+    }
+  },
+  "T12": {
+    "time_ms": 17.691,
+    "details": {
+      "description": "Marquer une conversation comme lue"
+    }
+  },
+  "T13": {
+    "time_ms": 18.93,
+    "details": {
+      "description": "Comptage des messages non lus"
+    }
+  },
+  "T14": {
+    "time_ms": 15.649,
+    "details": {
+      "description": "Message éphémère (TTL)"
+    }
+  },
+  "T15": {
+    "time_ms": 18.212,
+    "details": {
+      "description": "Signalement d'un message"
+    }
+  }
+}
