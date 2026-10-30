@@ -1,0 +1,10 @@
+services:
+  mongo3:
+    image: mongo:7
+    container_name: mongo3
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    ports: ["27017:27017"]
+    volumes: [mongo3-data:/data/db]
+
+volumes:
+  mongo3-data:
