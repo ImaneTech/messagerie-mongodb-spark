@@ -1,5 +1,9 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed
+from queries.utils import get_db, timed, record_benchmark
 
 def run(conversation_id=None, user_id=None):
     """
@@ -35,4 +39,5 @@ def run(conversation_id=None, user_id=None):
 if __name__ == "__main__":
     count = run()
     avg_ms = timed(run, runs=5)
+    record_benchmark("T13", avg_ms, {"description": "Comptage des messages non lus"})
     print(f"T13 exécuté : {count} messages non lus trouvés. Temps moyen : {avg_ms:.2f} ms")

@@ -1,6 +1,10 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from datetime import datetime, timezone
 from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed
+from queries.utils import get_db, timed, record_benchmark
 
 def run(conversation_id=None, user_id=None, last_read_ts=None):
     """
@@ -31,4 +35,5 @@ def run(conversation_id=None, user_id=None, last_read_ts=None):
 if __name__ == "__main__":
     count = run()
     avg_ms = timed(run, runs=5)
+    record_benchmark("T12", avg_ms, {"description": "Marquer une conversation comme lue"})
     print(f"T12 exécuté : Curseur de lecture mis à jour. Temps moyen : {avg_ms:.2f} ms")
