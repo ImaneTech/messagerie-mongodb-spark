@@ -11,6 +11,7 @@ def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl
     """
     T14: Messages éphémères avec TTL (auto-suppression).
     Insert un message avec le champ expire_at (index TTL configuré avec expireAfterSeconds=0).
+    Le document est tagué _benchmark=True et supprimé après le timing.
     """
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
@@ -37,14 +38,23 @@ def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl
         "reactions": [],
         "edited": False,
         "deleted": False,
-        "expire_at": expire_at
+        "expire_at": expire_at,
+        "_benchmark": True
     }
 
     messages.insert_one(doc)
     return doc
 
+def cleanup():
+    """Supprime tous les messages éphémères insérés par le benchmark."""
+    db = get_db()
+    messages = db[COLLECTIONS["messages"]]
+    messages.delete_many({"_benchmark": True})
+
 if __name__ == "__main__":
     msg = run()
+    cleanup()
     avg_ms = timed(run, runs=5)
+    cleanup()
     record_benchmark("T14", avg_ms, {"description": "Message éphémère (TTL)"})
     print(f"T14 exécuté : Message éphémère inséré ({msg['_id']}, expire à {msg['expire_at']}). Temps moyen : {avg_ms:.2f} ms")

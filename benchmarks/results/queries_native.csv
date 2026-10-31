@@ -1,0 +1,26 @@
+query_id,family,description,avg_ms,min_ms,max_ms,runs,result_summary
+T01,transactional,Envoyer un message,23.15,16.78,27.13,3,"{'_id': 'msg_a18139d0533b', 'conversation_id': 'conv_p_89ecf298ed', 'sender_id': 'usr_d495cde73068',"
+T02,transactional,Import en masse de messages,518.60,478.32,584.21,3,10000
+T03,transactional,Consulter profil utilisateur,14.44,12.64,17.83,3,"{'_id': 'usr_10018d22c321', 'pseudo': 'johnsonjoshua', 'phone': '321.581.9600', 'country': 'HT', 'cr"
+T04,transactional,50 derniers messages d'une conversation,21.36,20.72,21.72,3,"[{'_id': 'msg_4255e7a3fcb8', 'conversation_id': 'conv_p_89ecf298ed', 'sender_id': 'usr_0c946d726ae7'"
+T05,transactional,Pagination précédente,33.72,32.34,34.80,3,"[{'_id': 'msg_4255e7a3fcb8', 'conversation_id': 'conv_p_89ecf298ed', 'sender_id': 'usr_0c946d726ae7'"
+T06,transactional,Lister conversations utilisateur,15.93,10.41,26.88,3,"[{'_id': 'conv_g_ebfb58012a', 'type': 'group', 'name': 'Gaming Brian', 'participants': [{'user_id': "
+T07,transactional,Créer un groupe,18.60,15.66,21.60,3,"{'_id': 'conv_g_0c08bb2bec', 'type': 'group', 'name': 'Nouveau Groupe de Discussion', 'participants'"
+T08,transactional,Ajouter/retirer participant,21.39,20.93,21.92,3,1
+T09,transactional,Modifier un message,38.65,29.68,49.48,3,1
+T10,transactional,Suppression douce,20.22,17.56,24.13,3,1
+T11,transactional,Ajouter une réaction,22.27,20.98,23.28,3,1
+T12,transactional,Marquer conversation comme lue,17.42,16.41,18.75,3,1
+T13,transactional,Compter messages non lus,34.02,18.55,42.69,3,0
+T14,transactional,Messages éphémères TTL,22.16,16.93,28.07,3,"{'_id': 'msg_eph_7228462d28', 'conversation_id': 'conv_p_89ecf298ed', 'sender_id': 'usr_d495cde73068"
+T15,transactional,Signaler un message,20.81,18.14,24.05,3,"{'_id': 'rep_0d7c24c247', 'message_id': 'msg_cf3391b53072', 'reporter_id': 'usr_10018d22c321', 'reas"
+A16,analytical,Messages par jour,105.15,96.09,122.57,3,"[{'_id': '2026-05-12', 'total_messages': 1}, {'_id': '2026-05-13', 'total_messages': 2}, {'_id': '20"
+A17,analytical,Top utilisateurs actifs,102.81,95.77,114.59,3,"[{'message_count': 92, 'user_id': 'usr_b4ca3990904e', 'pseudo': 'wujorge'}, {'message_count': 87, 'u"
+A18,analytical,Répartition par type,112.83,85.95,134.38,3,"[{'count': 60323, 'type': 'text'}, {'count': 12116, 'type': 'image'}, {'count': 7411, 'type': 'file'"
+A19,analytical,Taille moyenne pièces jointes,115.50,113.49,118.85,3,"[{'count': 60323, 'mime': None, 'avg_size': None}, {'count': 4161, 'mime': 'image/jpeg', 'avg_size':"
+A20,analytical,Groupes de plus de 50,11.17,9.23,13.29,3,"[{'_id': 'conv_g_c5da42a4d5', 'name': 'Gaming Kyle', 'participants_count': 75, 'created_at': datetim"
+A21,analytical,Utilisateurs inactifs 30j,29.09,19.65,46.64,3,"[{'pseudo': 'jose62', 'last_login': datetime.datetime(2026, 5, 9, 19, 25, 43, 242000), 'user_id': 'u"
+A22,analytical,Messages par heure,126.82,116.04,140.43,3,"[{'count': 2357, 'hour': 0}, {'count': 2349, 'hour': 1}, {'count': 2393, 'hour': 2}, {'count': 2449,"
+A23,analytical,Top emojis,95.37,91.68,102.30,3,"[{'count': 2850, 'emoji': '🚀'}, {'count': 2813, 'emoji': '😢'}, {'count': 2803, 'emoji': '❤️'}, {'cou"
+A24,analytical,Signalements par motif/statut,17.84,13.73,24.09,3,"[{'count': 118, 'reason': 'scam', 'status': 'resolved'}, {'count': 117, 'reason': 'harassment', 'sta"
+A25,analytical,Conversations inactives 7j,31.93,24.10,47.17,3,"[{'type': 'private', 'name': '', 'last_message_at': datetime.datetime(2026, 7, 27, 3, 51, 21, 242000"

@@ -11,6 +11,7 @@ def run(message_id=None, reporter_id=None, reason="spam"):
     """
     T15: Signaler un message (abus, spam).
     Insert dans reports avec: _id, message_id, reporter_id, reason, status='pending', created_at.
+    Le document est tagué _benchmark=True et supprimé après le timing.
     """
     db = get_db()
     reports = db[COLLECTIONS["reports"]]
@@ -34,14 +35,23 @@ def run(message_id=None, reporter_id=None, reason="spam"):
         "reporter_id": reporter_id,
         "reason": reason,
         "status": "pending",
-        "created_at": now
+        "created_at": now,
+        "_benchmark": True
     }
 
     reports.insert_one(report_doc)
     return report_doc
 
+def cleanup():
+    """Supprime tous les rapports insérés par le benchmark."""
+    db = get_db()
+    reports = db[COLLECTIONS["reports"]]
+    reports.delete_many({"_benchmark": True})
+
 if __name__ == "__main__":
     rep = run()
+    cleanup()
     avg_ms = timed(run, runs=5)
+    cleanup()
     record_benchmark("T15", avg_ms, {"description": "Signalement d'un message"})
     print(f"T15 exécuté : Signalement enregistré ({rep['_id']}). Temps moyen : {avg_ms:.2f} ms")

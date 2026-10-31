@@ -10,6 +10,7 @@ def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text"
     """
     T01: Envoyer un message instantané (texte, pièce jointe, réaction).
     Insert un document dans la collection messages et met à jour last_message_at dans conversations.
+    Le document est tagué _benchmark=True et supprimé après le timing.
     """
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
@@ -36,18 +37,24 @@ def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text"
         "reactions": [],
         "edited": False,
         "deleted": False,
-        "expire_at": None
+        "expire_at": None,
+        "_benchmark": True
     }
 
     messages.insert_one(doc)
-    conversations.update_one(
-        {"_id": conversation_id},
-        {"$set": {"last_message_at": now}}
-    )
+    # Pas de mise à jour de last_message_at pendant le bench pour éviter les effets secondaires
     return doc
+
+def cleanup():
+    """Supprime tous les messages insérés par le benchmark."""
+    db = get_db()
+    messages = db[COLLECTIONS["messages"]]
+    messages.delete_many({"_benchmark": True})
 
 if __name__ == "__main__":
     res = run()
-    avg_ms = timed(run, runs=5)
-    record_benchmark("T01", avg_ms, {"description": "Envoi d'un message instantané"})
-    print(f"T01 exécuté : Message envoyé ({res['_id']}). Temps moyen : {avg_ms:.2f} ms")
+    cleanup()
+    timing = timed(run, runs=3)
+    cleanup()
+    record_benchmark("T01", timing["avg"], {"description": "Envoi d'un message instantané"})
+    print(f"T01 exécuté : Message envoyé ({res['_id']}). Temps moyen : {timing['avg']:.2f} ms (min: {timing['min']:.2f}, max: {timing['max']:.2f})")

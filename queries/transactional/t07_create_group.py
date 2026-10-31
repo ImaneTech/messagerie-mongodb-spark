@@ -11,6 +11,7 @@ def run(name="Nouveau Groupe de Discussion", creator_id=None, member_ids=None):
     """
     T07: Créer une conversation de groupe.
     Insert un document dans conversations avec: name, type='group', participants, participants_count, created_at, last_message_at.
+    Le document est tagué _benchmark=True et supprimé après le timing.
     """
     db = get_db()
     conversations = db[COLLECTIONS["conversations"]]
@@ -35,14 +36,23 @@ def run(name="Nouveau Groupe de Discussion", creator_id=None, member_ids=None):
         "participants": participants,
         "participants_count": len(participants),
         "created_at": now,
-        "last_message_at": now
+        "last_message_at": now,
+        "_benchmark": True
     }
 
     conversations.insert_one(conv_doc)
     return conv_doc
 
+def cleanup():
+    """Supprime toutes les conversations insérées par le benchmark."""
+    db = get_db()
+    conversations = db[COLLECTIONS["conversations"]]
+    conversations.delete_many({"_benchmark": True})
+
 if __name__ == "__main__":
     grp = run()
+    cleanup()
     avg_ms = timed(run, runs=5)
+    cleanup()
     record_benchmark("T07", avg_ms, {"description": "Création d'un groupe de discussion"})
     print(f"T07 exécuté : Groupe créé ({grp['_id']}, {grp['name']}). Temps moyen : {avg_ms:.2f} ms")
