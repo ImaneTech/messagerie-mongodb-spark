@@ -1,0 +1,4 @@
+query_id,native_avg_ms,spark_avg_ms,spark_session_ms,same_result
+A16,106,6038,1826,OK
+A17,107,5648,1879,OK
+A18,95,5596,1822,OK
