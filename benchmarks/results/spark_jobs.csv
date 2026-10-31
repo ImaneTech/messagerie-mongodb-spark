@@ -1,0 +1,6 @@
+job_id,description,avg_ms,min_ms,max_ms,runs,rows_out
+s26,Temps de réponse moyen conversations privées (Window/lag),4568,4065,5097,3,7743
+s27,Contacts communs entre paires d'utilisateurs top 20 (explode+self-join),14301,13452,14854,3,20
+s28,Détection spam: même contenu >20 conversations/heure,5356,3884,7701,3,1
+s29,Taux de signalement par expéditeur top 20 (sent>=20),4726,4432,5169,3,20
+s30,Rétention par cohorte mensuelle (6 cohortes),5696,5064,6925,3,6
