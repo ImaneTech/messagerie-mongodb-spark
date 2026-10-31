@@ -5,7 +5,7 @@ from faker import Faker
 
 fake = Faker()
 
-def generate_users(num_users=500, seed=42):
+def generate_users(num_users=10000, seed=42):
     """
     Génère num_users utilisateurs avec pseudo unique, contacts, réglages et dates de connexion.
     """
@@ -60,10 +60,20 @@ def generate_users(num_users=500, seed=42):
         possible_contacts = [other["_id"] for other in users if other["_id"] != u["_id"]]
         u["contacts"] = random.sample(possible_contacts, num_contacts)
 
+    # S27: Contacts communs explicites - créer des "cliques" d'utilisateurs avec contacts partagés
+    # Prendre 50 utilisateurs et leur donner beaucoup de contacts communs
+    clique_users = random.sample(users, min(50, len(users)))
+    clique_ids = [u["_id"] for u in clique_users]
+    for u in clique_users:
+        # Ajouter les autres membres de la clique comme contacts
+        for other_id in clique_ids:
+            if other_id != u["_id"] and other_id not in u["contacts"]:
+                u["contacts"].append(other_id)
+
     return users
 
 
-def generate_conversations(users, num_groups=50, num_direct=150, seed=42):
+def generate_conversations(users, num_groups=200, num_direct=7800, seed=42):
     """
     Génère conversations privées (1-to-1) et de groupes (dont certains > 50 membres pour A20).
     """
@@ -135,7 +145,7 @@ def generate_conversations(users, num_groups=50, num_direct=150, seed=42):
     return conversations
 
 
-def generate_messages(conversations, target_count=10000, seed=42):
+def generate_messages(conversations, target_count=80000, seed=42):
     """
     Génère des messages cohérents avec distribution chronologique, pièces jointes, réactions,
     soft delete et messages éphémères (TTL).
@@ -166,17 +176,23 @@ def generate_messages(conversations, target_count=10000, seed=42):
     # Pour satisfaire A25 (conversations inactives depuis 7 jours), 15% des conversations s'arrêtent il y a > 7 jours
     idle_conv_indices = set(random.sample(range(len(conversations)), int(len(conversations) * 0.15)))
 
+    # Pour satisfaire les requêtes 24h/7j/30j : 10% des conversations ont des messages dans les dernières 24h
+    recent_conv_indices = set(random.sample([i for i in range(len(conversations)) if i not in idle_conv_indices], int(len(conversations) * 0.10)))
+
     for idx, conv in enumerate(conversations):
         n_msgs = msgs_per_conv[idx]
         conv_participants = [p["user_id"] for p in conv["participants"]]
 
         is_idle = idx in idle_conv_indices
+        is_recent = idx in recent_conv_indices
         conv_created = conv["created_at"]
 
         if is_idle:
             max_ts = now - timedelta(days=random.randint(8, 25))
+        elif is_recent:
+            max_ts = now - timedelta(minutes=random.randint(1, 60))
         else:
-            max_ts = now - timedelta(minutes=random.randint(1, 120))
+            max_ts = now - timedelta(days=random.randint(1, 6))
 
         if max_ts <= conv_created:
             max_ts = conv_created + timedelta(hours=2)
@@ -251,6 +267,56 @@ def generate_messages(conversations, target_count=10000, seed=42):
         # Mettre à jour last_message_at de la conversation
         conv["last_message_at"] = current_ts
 
+    # S28: Spam - même contenu dans >20 conversations en 1h par certains senders
+    spam_content = "OFFRE SPÉCIALE ! Cliquez ici pour gagner !"
+    spam_senders = random.sample([u["_id"] for u in users], min(5, len(users)))
+    spam_hour_start = now - timedelta(hours=12)
+    spam_messages = []
+    for sender in spam_senders:
+        spam_convs = random.sample(conversations, min(25, len(conversations)))
+        for conv in spam_convs:
+            spam_ts = spam_hour_start + timedelta(minutes=random.randint(0, 60))
+            spam_messages.append({
+                "_id": f"msg_{uuid.uuid4().hex[:12]}",
+                "conversation_id": conv["_id"],
+                "sender_id": sender,
+                "ts": spam_ts,
+                "type": "text",
+                "content": spam_content,
+                "attachment": None,
+                "reactions": [],
+                "edited": False,
+                "deleted": False,
+                "expire_at": None
+            })
+    messages.extend(spam_messages)
+
+    # S26: Réponses rapides (back-and-forth) dans conversations privées
+    private_convs = [c for c in conversations if c["type"] == "private"]
+    quick_conv_ids = random.sample([c["_id"] for c in private_convs], min(20, len(private_convs)))
+    quick_messages = []
+    for conv_id in quick_conv_ids:
+        conv = next(c for c in conversations if c["_id"] == conv_id)
+        participants = [p["user_id"] for p in conv["participants"]]
+        base_ts = now - timedelta(hours=random.randint(1, 6))
+        for i in range(10):  # 10 messages aller-retour
+            sender = participants[i % 2]
+            quick_ts = base_ts + timedelta(seconds=i * 5)  # 5 secondes entre messages
+            quick_messages.append({
+                "_id": f"msg_{uuid.uuid4().hex[:12]}",
+                "conversation_id": conv_id,
+                "sender_id": sender,
+                "ts": quick_ts,
+                "type": "text",
+                "content": fake.sentence(nb_words=random.randint(2, 8)),
+                "attachment": None,
+                "reactions": [],
+                "edited": False,
+                "deleted": False,
+                "expire_at": None
+            })
+    messages.extend(quick_messages)
+
     return messages
 
 
@@ -316,7 +382,7 @@ def generate_reports(messages, total_reports=120, seed=42):
     return reports
 
 
-def generate_all(num_users=500, num_groups=50, num_direct=150, target_messages=10000, seed=42):
+def generate_all(num_users=10000, num_groups=200, num_direct=7800, target_messages=80000, seed=42):
     """
     Génère le dataset complet interconnecté pour chatdb.
     """
