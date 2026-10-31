@@ -1,7 +1,7 @@
 import time
 import argparse
 from queries.utils import get_db
-from data_generator.generate_data import generate_all
+from data_generator.generate_data import generate_users, generate_conversations, generate_messages, generate_read_status, generate_reports
 from schema.create_indexes import create_indexes
 
 def load_data(num_users=10000, num_groups=200, num_direct=7800, target_messages=80000, drop=True, batch_size=5000):
@@ -19,12 +19,18 @@ def load_data(num_users=10000, num_groups=200, num_direct=7800, target_messages=
 
     print(f"Génération des données ({num_users} users, {num_groups + num_direct} convs, ~{target_messages} msgs)...")
     start_time = time.time()
-    data = generate_all(
-        num_users=num_users,
-        num_groups=num_groups,
-        num_direct=num_direct,
-        target_messages=target_messages
-    )
+    users = generate_users(num_users=num_users, seed=42)
+    conversations = generate_conversations(users, num_groups=num_groups, num_direct=num_direct, seed=42)
+    messages = generate_messages(conversations, users, target_count=target_messages, seed=42)
+    read_statuses = generate_read_status(conversations, messages, seed=42)
+    reports = generate_reports(messages, total_reports=150, seed=42)
+    data = {
+        "users": users,
+        "conversations": conversations,
+        "messages": messages,
+        "read_status": read_statuses,
+        "reports": reports
+    }
     gen_duration = time.time() - start_time
     print(f"Données générées en mémoire en {gen_duration:.2f}s.")
 
