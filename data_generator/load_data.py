@@ -4,7 +4,7 @@ from queries.utils import get_db
 from data_generator.generate_data import generate_all
 from schema.create_indexes import create_indexes
 
-def load_data(num_users=500, num_groups=50, num_direct=150, target_messages=10000, drop=True, batch_size=2000):
+def load_data(num_users=10000, num_groups=200, num_direct=7800, target_messages=80000, drop=True, batch_size=5000):
     """
     Génère et insère en masse les données synthétiques dans MongoDB.
     """
@@ -58,10 +58,10 @@ def load_data(num_users=500, num_groups=50, num_direct=150, target_messages=1000
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Chargement des données synthétiques dans MongoDB.")
-    parser.add_argument("--users", type=int, default=500, help="Nombre d'utilisateurs")
-    parser.add_argument("--groups", type=int, default=50, help="Nombre de groupes")
-    parser.add_argument("--direct", type=int, default=150, help="Nombre de conversations privées")
-    parser.add_argument("--messages", type=int, default=10000, help="Nombre cible de messages")
+    parser.add_argument("--users", type=int, default=10000, help="Nombre d'utilisateurs")
+    parser.add_argument("--groups", type=int, default=200, help="Nombre de groupes")
+    parser.add_argument("--direct", type=int, default=7800, help="Nombre de conversations privées")
+    parser.add_argument("--messages", type=int, default=80000, help="Nombre cible de messages")
     parser.add_argument("--no-drop", action="store_true", help="Ne pas vider les collections avant insertion")
 
     args = parser.parse_args()
