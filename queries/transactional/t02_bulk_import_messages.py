@@ -7,10 +7,11 @@ from pymongo import InsertOne
 from config.settings import MONGO_DB, COLLECTIONS
 from queries.utils import get_db, timed, record_benchmark
 
-def run(conversation_id=None, sender_id=None, count=100):
+def run(conversation_id=None, sender_id=None, count=10000):
     """
     T02: Import en masse de messages (bulk insert).
-    Insère plusieurs documents messages en une seule opération bulk_write pour optimiser les performances.
+    Insère 10 000 documents messages en une seule opération bulk_write.
+    Chaque document est tagué _benchmark=True et supprimé après le timing.
     """
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
@@ -39,19 +40,24 @@ def run(conversation_id=None, sender_id=None, count=100):
             "reactions": [],
             "edited": False,
             "deleted": False,
-            "expire_at": None
+            "expire_at": None,
+            "_benchmark": True
         }
         operations.append(InsertOne(msg_doc))
 
     result = messages.bulk_write(operations, ordered=False)
-    conversations.update_one(
-        {"_id": conversation_id},
-        {"$set": {"last_message_at": now + timedelta(seconds=count)}}
-    )
     return result.inserted_count
 
+def cleanup():
+    """Supprime tous les messages insérés par le benchmark."""
+    db = get_db()
+    messages = db[COLLECTIONS["messages"]]
+    messages.delete_many({"_benchmark": True})
+
 if __name__ == "__main__":
-    inserted = run(count=50)
-    avg_ms = timed(lambda: run(count=50), runs=3)
-    record_benchmark("T02", avg_ms, {"count": 50, "description": "Import en masse de 50 messages"})
+    inserted = run(count=10000)
+    cleanup()
+    avg_ms = timed(lambda: run(count=10000), runs=3)
+    cleanup()
+    record_benchmark("T02", avg_ms, {"count": 10000, "description": "Import en masse de 10 000 messages"})
     print(f"T02 exécuté : {inserted} messages insérés via bulk_write. Temps moyen : {avg_ms:.2f} ms")

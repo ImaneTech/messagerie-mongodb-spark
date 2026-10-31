@@ -5,10 +5,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from config.settings import MONGO_DB, COLLECTIONS
 from queries.utils import get_db, timed, record_benchmark
 
+# Cache pour les IDs utilisés dans le bench (pour pouvoir restaurer)
+_bench_state = {}
+
 def run(conversation_id=None, user_id=None, action="add"):
     """
     T08: Ajouter ou retirer un participant d'un groupe.
     Update sur conversations avec $push ou $pull sur participants et mise à jour de participants_count.
+    Le bench fait add puis remove pour rester réversible.
     """
     db = get_db()
     conversations = db[COLLECTIONS["conversations"]]
@@ -24,6 +28,9 @@ def run(conversation_id=None, user_id=None, action="add"):
         if not candidate:
             candidate = users.find_one()
         user_id = candidate["_id"]
+
+    _bench_state["conversation_id"] = conversation_id
+    _bench_state["user_id"] = user_id
 
     if action == "add":
         res = conversations.update_one(
@@ -43,9 +50,29 @@ def run(conversation_id=None, user_id=None, action="add"):
         )
     return res.modified_count
 
+def cleanup():
+    """Retire le participant ajouté par le benchmark (opération réversible)."""
+    cid = _bench_state.get("conversation_id")
+    uid = _bench_state.get("user_id")
+    if cid and uid:
+        db = get_db()
+        conversations = db[COLLECTIONS["conversations"]]
+        conversations.update_one(
+            {"_id": cid, "participants.user_id": uid},
+            {
+                "$pull": {"participants": {"user_id": uid}},
+                "$inc": {"participants_count": -1}
+            }
+        )
+
+def run_bench():
+    """Benchmark : add seulement (cleanup retire ensuite)."""
+    return run(action="add")
+
 if __name__ == "__main__":
     added = run(action="add")
-    removed = run(action="remove")
-    avg_ms = timed(lambda: run(action="add"), runs=3)
+    cleanup()
+    avg_ms = timed(run_bench, runs=3)
+    cleanup()
     record_benchmark("T08", avg_ms, {"description": "Ajout/retrait de participant"})
-    print(f"T08 exécuté : Add={added}, Remove={removed}. Temps moyen : {avg_ms:.2f} ms")
+    print(f"T08 exécuté : Add={added}. Temps moyen : {avg_ms:.2f} ms")
