@@ -145,7 +145,7 @@ def generate_conversations(users, num_groups=200, num_direct=7800, seed=42):
     return conversations
 
 
-def generate_messages(conversations, target_count=80000, seed=42):
+def generate_messages(conversations, users, target_count=80000, seed=42):
     """
     Génère des messages cohérents avec distribution chronologique, pièces jointes, réactions,
     soft delete et messages éphémères (TTL).
@@ -388,7 +388,7 @@ def generate_all(num_users=10000, num_groups=200, num_direct=7800, target_messag
     """
     users = generate_users(num_users=num_users, seed=seed)
     conversations = generate_conversations(users, num_groups=num_groups, num_direct=num_direct, seed=seed)
-    messages = generate_messages(conversations, target_count=target_messages, seed=seed)
+    messages = generate_messages(conversations, users, target_count=target_messages, seed=seed)
     read_statuses = generate_read_status(conversations, messages, seed=seed)
     reports = generate_reports(messages, total_reports=150, seed=seed)
 
