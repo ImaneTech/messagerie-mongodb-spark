@@ -4,3 +4,10 @@
 __pycache__/
 *.pyc
 data/
+
+# Logs temporaires d'exécution des agents
+.agents/tasks/*.log
+benchmarks/results/*.log
+load_out.txt
+load_err.txt
+benchmarks/results/benchmarks.json
