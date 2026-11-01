@@ -3,40 +3,9 @@ import time
 from datetime import datetime, timedelta, timezone
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pymongo import MongoClient
 
 # URI injectée par docker exec -e MONGO_URI
 MONGO_URI = os.environ["MONGO_URI"]
-
-
-def native_run(mongo_uri):
-    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-    db = client["chatdb"]
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    start_30d = now - timedelta(days=30)
-    pipeline = [
-        {"$match": {"ts": {"$gte": start_30d}}},
-        {"$group": {
-            "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}},
-            "total_messages": {"$sum": 1}
-        }},
-        {"$sort": {"_id": 1}}
-    ]
-    result = list(db.messages.aggregate(pipeline))
-    client.close()
-    return result
-
-
-# --- 3 runs natifs ---
-native_times = []
-native_result = None
-for _ in range(3):
-    t0 = time.time()
-    native_result = native_run(MONGO_URI)
-    native_times.append((time.time() - t0) * 1000)
-native_avg_ms = sum(native_times) / len(native_times)
-print(f"NATIVE_AVG_MS={native_avg_ms:.0f}")
-native_days = sorted([(r["_id"], r["total_messages"]) for r in native_result])
 
 # --- Session Spark ---
 t_session_start = time.time()
@@ -70,14 +39,14 @@ for _ in range(3):
     spark_rows = result_df.collect()
     spark_times.append((time.time() - t0) * 1000)
 spark_avg_ms = sum(spark_times) / len(spark_times)
+print(f"SPARK_AVG_MS={spark_avg_ms:.0f}")
 print(f"DUREE_MS={spark_avg_ms:.0f}")
+print(f"Spark : {len(spark_rows)} jours, total messages : {sum(r['total_messages'] for r in spark_rows)}")
 
-spark_days = sorted([(r["day"], r["total_messages"]) for r in spark_rows])
+# La comparaison native/Spark est réalisée dans merge_native_spark.py
+print("SAME_RESULT=SPARK_ONLY")
 
-# --- Comparaison ---
-same = set(native_days) == set(spark_days)
-print(f"SAME_RESULT: {'OK' if same else 'DIFFERENT'}")
-print(f"Native : {len(native_days)} jours, Spark : {len(spark_days)} jours")
+result_df.show(35, truncate=False)
 
 # --- Écriture résultat ---
 t0 = time.time()

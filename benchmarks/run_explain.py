@@ -35,27 +35,39 @@ def explain_command(db, collection_name, query_filter, sort=None, limit=None, hi
     return db.command(cmd)
 
 
+def build_stage_chain(plan):
+    """Reconstruit récursivement la chaîne de stages : ex 'LIMIT > FETCH > IXSCAN'."""
+    if not isinstance(plan, dict):
+        return ""
+    stage = plan.get("stage", "")
+    parts = [stage] if stage else []
+    # gérer inputStage (un seul)
+    sub = plan.get("inputStage")
+    if isinstance(sub, dict):
+        child = build_stage_chain(sub)
+        if child:
+            parts.append(child)
+    # gérer inputStages (liste)
+    subs = plan.get("inputStages")
+    if isinstance(subs, list) and subs:
+        child = build_stage_chain(subs[0])  # premier suffit
+        if child:
+            parts.append(child)
+    # gérer shards
+    shards = plan.get("shards")
+    if isinstance(shards, list) and shards:
+        child = build_stage_chain(shards[0].get("winningPlan", {}))
+        if child:
+            parts.append(child)
+    return " > ".join(parts)
+
+
 def extract_explain_summary(explain_result):
-    """Extrait les champs pertinents d'un résultat explain executionStats."""
     stats = explain_result.get("executionStats", {})
     winning_plan = explain_result.get("queryPlanner", {}).get("winningPlan", {})
-
-    def get_stage(plan):
-        if not isinstance(plan, dict):
-            return "UNKNOWN"
-        stage = plan.get("stage", "")
-        if stage:
-            return stage
-        for key in ["inputStage", "inputStages"]:
-            sub = plan.get(key)
-            if isinstance(sub, dict):
-                return get_stage(sub)
-            elif isinstance(sub, list) and sub:
-                return get_stage(sub[0])
-        return "UNKNOWN"
-
     return {
-        "winningPlan_stage": get_stage(winning_plan),
+        "stage_chain": build_stage_chain(winning_plan),
+        "totalKeysExamined": stats.get("totalKeysExamined"),
         "totalDocsExamined": stats.get("totalDocsExamined"),
         "nReturned": stats.get("nReturned"),
         "executionTimeMillis": stats.get("executionTimeMillis"),
@@ -66,10 +78,27 @@ def save_explain(filename, summary):
     path = os.path.join(RESULTS_DIR, filename)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
-    print(f"  Écrit : {filename} — stage={summary['winningPlan_stage']}, "
+    print(f"  Écrit : {filename} — stage_chain={summary['stage_chain']}, "
+          f"keysExamined={summary['totalKeysExamined']}, "
           f"docsExamined={summary['totalDocsExamined']}, "
           f"nReturned={summary['nReturned']}, "
           f"timeMs={summary['executionTimeMillis']}")
+
+
+def get_busiest_conversation(db):
+    """Retourne l'_id de la conversation avec le plus de messages."""
+    pipeline = [
+        {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 1}
+    ]
+    top = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
+    if top:
+        print(f"  Conversation la plus chargée : {top[0]['_id']} ({top[0]['count']} messages)")
+        return top[0]["_id"]
+    # Fallback
+    conv = db[COLLECTIONS["conversations"]].find_one()
+    return conv["_id"] if conv else None
 
 
 def main():
@@ -78,8 +107,7 @@ def main():
 
     # ── T4 normal ────────────────────────────────────────────────────────────
     print("T4 (avec index):")
-    conv = db[COLLECTIONS["conversations"]].find_one()
-    cid = conv["_id"] if conv else None
+    cid = get_busiest_conversation(db)
     raw = explain_command(
         db,
         collection_name=COLLECTIONS["messages"],
@@ -123,8 +151,21 @@ def main():
 
     # ── T6 normal ────────────────────────────────────────────────────────────
     print("\nT6 (avec index):")
-    u = db[COLLECTIONS["users"]].find_one()
-    uid = u["_id"] if u else None
+    # Chercher un utilisateur dans >= 5 conversations
+    pipeline = [
+        {"$unwind": "$participants"},
+        {"$group": {"_id": "$participants.user_id", "count": {"$sum": 1}}},
+        {"$match": {"count": {"$gte": 5}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 1}
+    ]
+    top_user = list(db[COLLECTIONS["conversations"]].aggregate(pipeline))
+    if top_user:
+        uid = top_user[0]["_id"]
+        print(f"  Utilisateur choisi : {uid} ({top_user[0]['count']} conversations)")
+    else:
+        u = db[COLLECTIONS["users"]].find_one()
+        uid = u["_id"] if u else None
 
     raw = explain_command(
         db,

@@ -12,10 +12,18 @@ def get_query(user_id=None, limit=20):
     users = db[COLLECTIONS["users"]]
 
     if not user_id:
-        u = users.find_one()
-        if not u:
-            return None, None
-        user_id = u["_id"]
+        # Chercher l'utilisateur participant au plus de conversations (>= 5)
+        pipeline = [
+            {"$unwind": "$participants"},
+            {"$group": {"_id": "$participants.user_id", "count": {"$sum": 1}}},
+            {"$match": {"count": {"$gte": 5}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 1}
+        ]
+        top = list(db[COLLECTIONS["conversations"]].aggregate(pipeline))
+        user_id = top[0]["_id"] if top else None
+        if top:
+            print(f"USER_CHOISI={user_id} NB_CONVERSATIONS={top[0]['count']}")
 
     cursor = conversations.find(
         {"participants.user_id": user_id}
@@ -25,7 +33,7 @@ def get_query(user_id=None, limit=20):
 
 def run(user_id=None, limit=20):
     """
-    T06: Lister les conversations d'un utilisateur.
+    T06: Lister les conversations d'un utilisateur dans >= 5 conversations.
     Query sur conversations avec filter participants.user_id, sort last_message_at descendante.
     """
     _, cursor = get_query(user_id, limit)
@@ -42,12 +50,14 @@ def explain_plan(user_id=None, limit=20):
 
 if __name__ == "__main__":
     convs = run()
-    avg_ms = timed(run, runs=5)
+    timing = timed(run, runs=3)
     plan = explain_plan()
     index_name = extract_index_name(plan)
 
-    record_benchmark("T06", avg_ms, {
+    record_benchmark("T06", timing["avg"], {
         "description": "Lister les conversations d'un utilisateur",
-        "index_used": index_name
+        "index_used": index_name,
+        "user_id": str(convs[0]["_id"]) if convs else None
     })
-    print(f"T06 exécuté : {len(convs)} conversations trouvées (Index: {index_name}). Temps moyen : {avg_ms:.2f} ms")
+    print(f"T06 exécuté : {len(convs)} conversations trouvées (Index: {index_name}). "
+          f"Temps moyen : {timing['avg']:.2f} ms")

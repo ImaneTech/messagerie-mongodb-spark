@@ -12,10 +12,16 @@ def get_query(conversation_id=None, limit=50):
     conversations = db[COLLECTIONS["conversations"]]
 
     if not conversation_id:
-        conv = conversations.find_one()
-        if not conv:
-            return None, None
-        conversation_id = conv["_id"]
+        # Chercher la conversation avec le plus de messages
+        pipeline = [
+            {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 1}
+        ]
+        top = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
+        conversation_id = top[0]["_id"] if top else None
+        if top:
+            print(f"CONV_CHOISIE={conversation_id} NB_MESSAGES={top[0]['count']}")
 
     cursor = messages.find(
         {"conversation_id": conversation_id, "deleted": False}
@@ -25,7 +31,7 @@ def get_query(conversation_id=None, limit=50):
 
 def run(conversation_id=None, limit=50):
     """
-    T04: Afficher les 50 derniers messages d'une conversation.
+    T04: Afficher les 50 derniers messages de la conversation la plus chargée.
     Query sur messages avec filter conversation_id, sort ts descendante, limit 50.
     """
     _, cursor = get_query(conversation_id, limit)
@@ -42,12 +48,15 @@ def explain_plan(conversation_id=None, limit=50):
 
 if __name__ == "__main__":
     msgs = run()
-    avg_ms = timed(run, runs=5)
+    print(f"nReturned={len(msgs)}")
+    timing = timed(run, runs=3)
     plan = explain_plan()
     index_name = extract_index_name(plan)
 
-    record_benchmark("T04", avg_ms, {
+    record_benchmark("T04", timing["avg"], {
         "description": "50 derniers messages d'une conversation",
-        "index_used": index_name
+        "index_used": index_name,
+        "conversation_id": str(msgs[0]["conversation_id"]) if msgs else None
     })
-    print(f"T04 exécuté : {len(msgs)} messages récupérés (Index: {index_name}). Temps moyen : {avg_ms:.2f} ms")
+    print(f"T04 exécuté : {len(msgs)} messages récupérés (Index: {index_name}). "
+          f"Temps moyen : {timing['avg']:.2f} ms")
