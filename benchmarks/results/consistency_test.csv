@@ -1,0 +1,7 @@
+test_id,setting,runs,avg_ms,median_ms,p95_ms,members_up
+T1,w=1,50,2.79,2.55,4.36,2
+T1,w=majority,50,8.69,8.42,11.83,2
+T2,w=1,5,306.75,304.05,332.83,2
+T2,w=majority,5,336.46,329.43,386.37,2
+T4,readConcern=local,30,11.57,11.0,15.08,2
+T4,readConcern=majority,30,14.39,14.2,17.38,2
