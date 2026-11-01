@@ -1,6 +1,7 @@
 {
-  "winningPlan_stage": "SORT",
+  "stage_chain": "SORT > COLLSCAN",
+  "totalKeysExamined": 0,
   "totalDocsExamined": 8000,
-  "nReturned": 5,
-  "executionTimeMillis": 7
+  "nReturned": 10,
+  "executionTimeMillis": 8
 }
