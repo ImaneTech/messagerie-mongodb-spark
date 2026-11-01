@@ -7,7 +7,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 from config.settings import MONGO_URI, MONGO_DB, COLLECTIONS

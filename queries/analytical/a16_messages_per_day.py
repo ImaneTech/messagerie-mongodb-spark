@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from datetime import datetime, timedelta, timezone
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 def run(start_date=None, end_date=None):
     """
@@ -43,15 +43,4 @@ def run(start_date=None, end_date=None):
 
     return list(messages.aggregate(pipeline))
 
-if __name__ == "__main__":
-    res = run()
-    total_msgs = sum(r["total_messages"] for r in res)
-    print(f"A16 buckets={len(res)} total_messages={total_msgs}")
-    timing = timed(run, runs=3)
-    record_benchmark("A16", timing["avg"], {
-        "description": "Nombre de messages par jour (30 derniers jours)",
-        "buckets": len(res),
-        "total_messages": total_msgs
-    })
-    print(f"A16 exécuté : {len(res)} buckets, {total_msgs} messages au total. "
-          f"Temps moyen : {timing['avg']:.2f} ms")
+

@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from datetime import datetime, timezone
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 # Cache pour restaurer l'état original
 _original_state = {}
@@ -65,10 +65,4 @@ def cleanup():
             return
         messages.update_one({"_id": mid}, {"$set": restore})
 
-if __name__ == "__main__":
-    mod = run()
-    cleanup()
-    avg_ms = timed(run, runs=5)
-    cleanup()
-    record_benchmark("T09", avg_ms, {"description": "Modification d'un message"})
-    print(f"T09 exécuté : {mod} message modifié. Temps moyen : {avg_ms:.2f} ms")
+

@@ -46,7 +46,7 @@ def read_spark_cmp_timings():
     """
     data = {}
     if not os.path.exists(SPARK_CMP_CSV):
-        print(f"[WARN] spark_cmp_timings.csv absent - timings Spark inconnus")
+        print("[WARN] spark_cmp_timings.csv absent - timings Spark inconnus")
         return data
     with open(SPARK_CMP_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
@@ -172,7 +172,7 @@ def compare(native_res, spark_res, query_id):
         if native_keys == spark_keys and dict(native_top) == dict(spark_top):
             return "OK", f"top10 identique, top1={native_top[0]}"
         elif native_keys == spark_keys:
-            return "OK", f"top10 mêmes senders (counts peuvent varier si rechargement)"
+            return "OK", "top10 mêmes senders (counts peuvent varier si rechargement)"
         else:
             diff = native_keys.symmetric_difference(spark_keys)
             return "DIFFERENT", f"senders différents: {diff}"

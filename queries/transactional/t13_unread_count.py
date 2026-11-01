@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pymongo import DESCENDING
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 def run(conversation_id=None, user_id=None):
     """
@@ -105,10 +105,4 @@ def run(conversation_id=None, user_id=None):
 
     return count
 
-if __name__ == "__main__":
-    count = run()
-    print(f"T13_UNREAD_COUNT={count}")
-    assert count > 0, f"T13: count doit être > 0, obtenu {count}"
-    timing = timed(run, runs=3)
-    record_benchmark("T13", timing["avg"], {"description": "Comptage des messages non lus"})
-    print(f"T13 exécuté : {count} messages non lus trouvés. Temps moyen : {timing['avg']:.2f} ms")
+

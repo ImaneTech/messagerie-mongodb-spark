@@ -178,7 +178,7 @@ else:
 
 # ── Sauvegarde CSV ────────────────────────────────────────────────────────────
 save_query_results(results)
-print(f"\nRésultats sauvegardés dans benchmarks/results/queries_native.csv")
+print("\nRésultats sauvegardés dans benchmarks/results/queries_native.csv")
 
 # ── Suppression de benchmarks.json si présent ────────────────────────────────
 bj = os.path.join(os.path.dirname(__file__), "results", "benchmarks.json")

@@ -2,8 +2,8 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 
 def run():
@@ -24,13 +24,4 @@ def run():
     return list(messages.aggregate(pipeline))
 
 
-if __name__ == "__main__":
-    res = run()
-    avg_ms = timed(run, runs=5)
-    record_benchmark("A22", avg_ms, {
-        "description": "Messages par heure de la journée",
-        "hours_count": len(res)
-    })
-    for r in res:
-        print(f"  {r['hour']:02d}h : {r['count']} messages")
-    print(f"A22 exécuté : {len(res)} tranches horaires. Temps moyen : {avg_ms:.2f} ms")
+

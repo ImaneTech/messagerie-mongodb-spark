@@ -2,8 +2,8 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 # Cache pour les IDs utilisés dans le bench (pour pouvoir restaurer)
 _bench_state = {}
@@ -69,10 +69,4 @@ def run_bench():
     """Benchmark : add seulement (cleanup retire ensuite)."""
     return run(action="add")
 
-if __name__ == "__main__":
-    added = run(action="add")
-    cleanup()
-    avg_ms = timed(run_bench, runs=3)
-    cleanup()
-    record_benchmark("T08", avg_ms, {"description": "Ajout/retrait de participant"})
-    print(f"T08 exécuté : Add={added}. Temps moyen : {avg_ms:.2f} ms")
+
