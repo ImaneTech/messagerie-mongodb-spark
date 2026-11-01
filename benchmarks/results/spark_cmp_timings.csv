@@ -1,0 +1,4 @@
+query_id,spark_avg_ms,spark_session_ms
+A16,8480,2364
+A17,6768,1717
+A18,5756,1648
