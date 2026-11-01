@@ -308,14 +308,22 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
     for conv_id in quick_conv_ids:
         conv = next(c for c in conversations if c["_id"] == conv_id)
         participants = [p["user_id"] for p in conv["participants"]]
-        base_ts = now - timedelta(hours=random.randint(1, 6))
+        # base_ts doit être >= created_at des deux participants pour éviter gap=0
+        p0_min = user_created.get(participants[0], now - timedelta(days=180))
+        p1_min = user_created.get(participants[1], now - timedelta(days=180))
+        base_min = max(p0_min, p1_min) + timedelta(seconds=1)
+        raw_base = now - timedelta(hours=random.randint(1, 6))
+        base_ts = max(raw_base, base_min)
 
         for i in range(12):
             sender = participants[i % 2]
+            # Pas strictement croissant de 5s — aucune collision possible
             quick_ts = base_ts + timedelta(seconds=i * 5)
             sender_min_ts = user_created.get(sender, base_ts)
             if quick_ts < sender_min_ts:
-                quick_ts = sender_min_ts + timedelta(seconds=i * 5 + 1)
+                # Décaler toute la séquence
+                base_ts = sender_min_ts + timedelta(seconds=1)
+                quick_ts = base_ts + timedelta(seconds=i * 5)
             messages.append({
                 "_id": f"msg_{uuid.uuid4().hex[:12]}",
                 "conversation_id": conv_id,

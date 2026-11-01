@@ -34,14 +34,17 @@ w = Window.partitionBy("conversation_id").orderBy("ts")
 msgs_w = msgs_private.withColumn("prev_sender", F.lag("sender_id").over(w)) \
                      .withColumn("prev_ts", F.lag("ts").over(w))
 
-# Une réponse valide : sender diffère du précédent ET gap <= MAX_GAP_SECONDS
+# Une réponse valide : sender diffère du précédent ET 0 < gap <= MAX_GAP_SECONDS
+# gap=0 (messages simultanés) = pas une réponse mesurable
 responses = msgs_w.filter(
     F.col("prev_sender").isNotNull() &
     (F.col("sender_id") != F.col("prev_sender"))
 ).withColumn(
     "delta_sec",
-    (F.col("ts").cast("long") - F.col("prev_ts").cast("long")).cast("double")
-).filter(F.col("delta_sec") <= MAX_GAP_SECONDS)
+    (F.unix_timestamp(F.col("ts")) - F.unix_timestamp(F.col("prev_ts"))).cast("double")
+).filter(
+    (F.col("delta_sec") > 0.0) & (F.col("delta_sec") <= MAX_GAP_SECONDS)
+)
 
 # --- 3 runs pour le timing ---
 run_times = []
@@ -52,23 +55,37 @@ per_conv = None
 
 for i in range(3):
     t0 = time.time()
-    # Calculs globaux
+    # Calculs globaux avec distribution complète
     agg_row = responses.agg(
         F.count("*").alias("nb"),
         F.avg("delta_sec").alias("avg_sec"),
-        F.percentile_approx("delta_sec", 0.5).alias("median_sec")
+        F.min("delta_sec").alias("min_sec"),
+        F.max("delta_sec").alias("max_sec"),
+        F.percentile_approx("delta_sec", 0.25).alias("p25_sec"),
+        F.percentile_approx("delta_sec", 0.50).alias("p50_sec"),
+        F.percentile_approx("delta_sec", 0.75).alias("p75_sec"),
+        F.percentile_approx("delta_sec", 0.95).alias("p95_sec"),
     ).collect()[0]
     run_times.append((time.time() - t0) * 1000)
     if i == 0:
-        global_avg = agg_row["avg_sec"]
-        global_median = agg_row["median_sec"]
+        global_avg    = agg_row["avg_sec"]
+        global_median = agg_row["p50_sec"]
         response_count = agg_row["nb"]
+        dist = agg_row
 
 avg_ms = sum(run_times) / len(run_times)
 print(f"MAX_GAP_SECONDS={MAX_GAP_SECONDS}")
 print(f"REPONSES_COMPTEES={response_count}")
-print(f"MOYENNE_SEC={global_avg:.2f}" if global_avg is not None else "MOYENNE_SEC=None")
-print(f"MEDIANE_SEC={global_median}")
+print(f"DISTRIBUTION (secondes, gap>0 uniquement):")
+print(f"  min    = {dist['min_sec']:.3f}")
+print(f"  p25    = {dist['p25_sec']:.3f}")
+print(f"  median = {dist['p50_sec']:.3f}")
+print(f"  p75    = {dist['p75_sec']:.3f}")
+print(f"  p95    = {dist['p95_sec']:.3f}")
+print(f"  max    = {dist['max_sec']:.3f}")
+print(f"  mean   = {dist['avg_sec']:.3f}")
+print(f"MOYENNE_SEC={global_avg:.3f}" if global_avg is not None else "MOYENNE_SEC=None")
+print(f"MEDIANE_SEC={global_median:.3f}" if global_median is not None else "MEDIANE_SEC=None")
 print(f"DUREE_MS={avg_ms:.0f}")
 
 # Moyenne par conversation
