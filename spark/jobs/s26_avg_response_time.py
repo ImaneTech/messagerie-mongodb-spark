@@ -40,7 +40,7 @@ responses = msgs_w.filter(
     (F.col("sender_id") != F.col("prev_sender"))
 ).withColumn(
     "delta_sec",
-    (F.col("ts").cast("long") - F.col("prev_ts").cast("long"))
+    (F.col("ts").cast("long") - F.col("prev_ts").cast("long")).cast("double")
 ).filter(F.col("delta_sec") <= MAX_GAP_SECONDS)
 
 # --- 3 runs pour le timing ---
