@@ -68,7 +68,7 @@ def bench_t2_write_concern(db, conv_id, wc_value, runs=5):
     for _ in range(runs):
         docs = [make_message(conv_id) for _ in range(10000)]
         t0 = time.time()
-        result = coll.insert_many(docs, ordered=False)
+        coll.insert_many(docs, ordered=False)
         elapsed = (time.time() - t0) * 1000
         times.append(elapsed)
         coll.delete_many({"_benchmark": True})

@@ -4,8 +4,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 import uuid
 from datetime import datetime, timezone, timedelta
 from pymongo import InsertOne
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 def run(conversation_id=None, sender_id=None, count=10000):
     """
@@ -54,10 +54,4 @@ def cleanup():
     messages = db[COLLECTIONS["messages"]]
     messages.delete_many({"_benchmark": True})
 
-if __name__ == "__main__":
-    inserted = run(count=10000)
-    cleanup()
-    avg_ms = timed(lambda: run(count=10000), runs=3)
-    cleanup()
-    record_benchmark("T02", avg_ms, {"count": 10000, "description": "Import en masse de 10 000 messages"})
-    print(f"T02 exécuté : {inserted} messages insérés via bulk_write. Temps moyen : {avg_ms:.2f} ms")
+

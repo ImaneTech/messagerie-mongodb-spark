@@ -385,7 +385,6 @@ def generate_reports(messages, total_reports=1200, seed=42):
     statuses = ["pending", "resolved", "dismissed"]
 
     all_senders = list(set(m["sender_id"] for m in messages))
-    high_report_senders = random.sample(all_senders, min(20, len(all_senders)))
 
     sampled_messages = random.sample(messages, min(total_reports, len(messages)))
 

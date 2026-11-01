@@ -2,8 +2,8 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark, extract_index_name
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 
 def run():
@@ -23,13 +23,4 @@ def run():
     return list(messages.aggregate(pipeline))
 
 
-if __name__ == "__main__":
-    res = run()
-    avg_ms = timed(run, runs=5)
-    record_benchmark("A18", avg_ms, {
-        "description": "Répartition des messages par type",
-        "types_count": len(res)
-    })
-    for r in res:
-        print(f"  {r['type']}: {r['count']}")
-    print(f"A18 exécuté : {len(res)} types. Temps moyen : {avg_ms:.2f} ms")
+

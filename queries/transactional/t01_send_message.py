@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import uuid
 from datetime import datetime, timezone
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text", attachment=None):
     """
@@ -51,10 +51,4 @@ def cleanup():
     messages = db[COLLECTIONS["messages"]]
     messages.delete_many({"_benchmark": True})
 
-if __name__ == "__main__":
-    res = run()
-    cleanup()
-    timing = timed(run, runs=3)
-    cleanup()
-    record_benchmark("T01", timing["avg"], {"description": "Envoi d'un message instantané"})
-    print(f"T01 exécuté : Message envoyé ({res['_id']}). Temps moyen : {timing['avg']:.2f} ms (min: {timing['min']:.2f}, max: {timing['max']:.2f})")
+

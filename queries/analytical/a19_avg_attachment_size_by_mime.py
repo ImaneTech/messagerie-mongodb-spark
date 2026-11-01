@@ -2,8 +2,8 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 
 def run():
@@ -28,13 +28,4 @@ def run():
     return list(messages.aggregate(pipeline))
 
 
-if __name__ == "__main__":
-    res = run()
-    avg_ms = timed(run, runs=5)
-    record_benchmark("A19", avg_ms, {
-        "description": "Taille moyenne des pièces jointes par MIME",
-        "mime_types": len(res)
-    })
-    for r in res:
-        print(f"  {r['mime']}: avg={r['avg_size']} octets, n={r['count']}")
-    print(f"A19 exécuté : {len(res)} types MIME. Temps moyen : {avg_ms:.2f} ms")
+

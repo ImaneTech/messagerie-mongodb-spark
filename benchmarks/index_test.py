@@ -1,8 +1,7 @@
 # benchmarks/index_test.py
 # Test d'index pour T4 et T6 : 30 runs avec index, 30 runs avec hint($natural:1), alternés.
-import sys, os, csv, json, statistics, time
+import sys, os, csv, statistics, time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from pymongo import DESCENDING
 from config.settings import COLLECTIONS
 from queries.utils import get_db
 

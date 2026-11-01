@@ -76,7 +76,7 @@ for i in range(3):
 avg_ms = sum(run_times) / len(run_times)
 print(f"MAX_GAP_SECONDS={MAX_GAP_SECONDS}")
 print(f"REPONSES_COMPTEES={response_count}")
-print(f"DISTRIBUTION (secondes, gap>0 uniquement):")
+print("DISTRIBUTION (secondes, gap>0 uniquement):")
 print(f"  min    = {dist['min_sec']:.3f}")
 print(f"  p25    = {dist['p25_sec']:.3f}")
 print(f"  median = {dist['p50_sec']:.3f}")

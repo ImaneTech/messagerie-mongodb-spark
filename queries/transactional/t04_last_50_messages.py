@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pymongo import DESCENDING
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark, extract_index_name
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 def get_query(conversation_id=None, limit=50):
     db = get_db()
@@ -46,17 +46,4 @@ def explain_plan(conversation_id=None, limit=50):
         return {}
     return cursor.explain()
 
-if __name__ == "__main__":
-    msgs = run()
-    print(f"nReturned={len(msgs)}")
-    timing = timed(run, runs=3)
-    plan = explain_plan()
-    index_name = extract_index_name(plan)
 
-    record_benchmark("T04", timing["avg"], {
-        "description": "50 derniers messages d'une conversation",
-        "index_used": index_name,
-        "conversation_id": str(msgs[0]["conversation_id"]) if msgs else None
-    })
-    print(f"T04 exécuté : {len(msgs)} messages récupérés (Index: {index_name}). "
-          f"Temps moyen : {timing['avg']:.2f} ms")

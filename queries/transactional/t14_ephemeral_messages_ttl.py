@@ -4,8 +4,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 import uuid
 from datetime import datetime, timezone, timedelta
-from config.settings import MONGO_DB, COLLECTIONS
-from queries.utils import get_db, timed, record_benchmark
+from config.settings import COLLECTIONS
+from queries.utils import get_db
 
 def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl_seconds=3600):
     """
@@ -51,10 +51,4 @@ def cleanup():
     messages = db[COLLECTIONS["messages"]]
     messages.delete_many({"_benchmark": True})
 
-if __name__ == "__main__":
-    msg = run()
-    cleanup()
-    avg_ms = timed(run, runs=5)
-    cleanup()
-    record_benchmark("T14", avg_ms, {"description": "Message éphémère (TTL)"})
-    print(f"T14 exécuté : Message éphémère inséré ({msg['_id']}, expire à {msg['expire_at']}). Temps moyen : {avg_ms:.2f} ms")
+
