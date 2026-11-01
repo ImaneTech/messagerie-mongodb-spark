@@ -95,7 +95,7 @@ Test-NetConnection <ip-machine-B> -Port 27017
 docker exec -it mongo1 mongosh --eval "rs.status().members.map(m => [m.name, m.stateStr])"
 ```
 
-Résultat attendu : **1 PRIMARY et 2 SECONDARY**. Interface du master Spark : `http://<ip-machine-A>:8080` (2 workers `ALIVE`).
+Résultat attendu : **1 PRIMARY et 2 SECONDARY**. Interface du master Spark : `http://<ip-machine-A>:18080` (2 workers `ALIVE`).
 
 ## 5. Données
 
@@ -233,7 +233,16 @@ Les temps moyens des 30 requêtes sont dans `benchmarks/results/`. `<tableau ou 
 streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-Ouvrir `http://<ip-machine-A>:8501`. Il lit les collections `stats_...` écrites par Spark et affiche au moins 3 graphiques : `<messages par jour, répartition par type, messages par heure, top utilisateurs>`, plus une page des temps d'exécution.
+Ouvrir `http://<ip-machine-A>:8501`.
+
+Pages :
+- Vue d'ensemble : compteurs des collections, messages par jour
+- Usage : répartition par type, messages par heure, top utilisateurs
+- Abus et modération : signalements, taux de signalement, spam
+- Engagement : rétention par cohorte, temps de réponse
+- Performance : benchmarks des requêtes, comparaison native/Spark, tests d'index et cohérence
+
+Il lit les collections `stats_...` écrites par Spark et affiche au moins 3 graphiques : messages par jour, répartition par type, messages par heure, top utilisateurs, plus une page des temps d'exécution.
 
 ## 10. Dépannage
 
