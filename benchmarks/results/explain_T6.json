@@ -1,6 +1,7 @@
 {
-  "winningPlan_stage": "LIMIT",
-  "totalDocsExamined": 5,
-  "nReturned": 5,
+  "stage_chain": "LIMIT > FETCH > IXSCAN",
+  "totalKeysExamined": 10,
+  "totalDocsExamined": 10,
+  "nReturned": 10,
   "executionTimeMillis": 0
 }
