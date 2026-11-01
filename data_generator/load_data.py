@@ -4,7 +4,7 @@ from queries.utils import get_db
 from data_generator.generate_data import generate_users, generate_conversations, generate_messages, generate_read_status, generate_reports
 from schema.create_indexes import create_indexes
 
-def load_data(num_users=10000, num_groups=200, num_direct=7800, target_messages=80000, drop=True, batch_size=5000):
+def load_data(num_users=10000, num_groups=200, num_direct=7800, target_messages=85000, drop=True, batch_size=5000):
     """
     Génère et insère en masse les données synthétiques dans MongoDB.
     """
@@ -23,7 +23,7 @@ def load_data(num_users=10000, num_groups=200, num_direct=7800, target_messages=
     conversations = generate_conversations(users, num_groups=num_groups, num_direct=num_direct, seed=42)
     messages = generate_messages(conversations, users, target_count=target_messages, seed=42)
     read_statuses = generate_read_status(conversations, messages, seed=42)
-    reports = generate_reports(messages, total_reports=150, seed=42)
+    reports = generate_reports(messages, total_reports=1200, seed=42)
     data = {
         "users": users,
         "conversations": conversations,
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     parser.add_argument("--users", type=int, default=10000, help="Nombre d'utilisateurs")
     parser.add_argument("--groups", type=int, default=200, help="Nombre de groupes")
     parser.add_argument("--direct", type=int, default=7800, help="Nombre de conversations privées")
-    parser.add_argument("--messages", type=int, default=80000, help="Nombre cible de messages")
+    parser.add_argument("--messages", type=int, default=85000, help="Nombre cible de messages")
     parser.add_argument("--no-drop", action="store_true", help="Ne pas vider les collections avant insertion")
 
     args = parser.parse_args()
