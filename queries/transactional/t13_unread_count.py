@@ -28,7 +28,6 @@ def run(conversation_id=None, user_id=None):
     # ── Cas 2 : chercher une paire avec non-lus réels ───────────────────────
     for st in read_status.find({}, limit=200):
         cid = st.get("conversation_id")
-        uid = st.get("user_id")
         last_read = st.get("last_read_ts")
         if not last_read:
             continue
