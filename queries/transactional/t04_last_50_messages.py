@@ -9,7 +9,6 @@ from queries.utils import get_db
 def get_query(conversation_id=None, limit=50):
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
-    conversations = db[COLLECTIONS["conversations"]]
 
     if not conversation_id:
         # Chercher la conversation avec le plus de messages

@@ -9,7 +9,6 @@ from queries.utils import get_db
 def get_query(user_id=None, limit=20):
     db = get_db()
     conversations = db[COLLECTIONS["conversations"]]
-    users = db[COLLECTIONS["users"]]
 
     if not user_id:
         # Chercher l'utilisateur participant au plus de conversations (>= 5)
