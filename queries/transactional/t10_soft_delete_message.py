@@ -1,13 +1,16 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from datetime import datetime, timezone
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
 
 # Cache pour restaurer l'état original
 _original_state = {}
+
 
 def run(message_id=None):
     """
@@ -31,13 +34,16 @@ def run(message_id=None):
 
     res = messages.update_one(
         {"_id": message_id},
-        {"$set": {
-            "deleted": True,
-            "content": "Ce message a été supprimé.",
-            "deleted_at": datetime.now(timezone.utc).replace(tzinfo=None)
-        }}
+        {
+            "$set": {
+                "deleted": True,
+                "content": "Ce message a été supprimé.",
+                "deleted_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            }
+        },
     )
     return res.modified_count
+
 
 def cleanup():
     """Restaure le message à son état original (non supprimé)."""
@@ -54,5 +60,3 @@ def cleanup():
             messages.update_one({"_id": mid}, {"$set": restore})
         else:
             messages.update_one({"_id": mid}, {"$set": restore, "$unset": {"deleted_at": ""}})
-
-

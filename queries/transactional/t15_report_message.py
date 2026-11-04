@@ -1,11 +1,14 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import uuid
 from datetime import datetime, timezone
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(message_id=None, reporter_id=None, reason="spam"):
     """
@@ -36,16 +39,15 @@ def run(message_id=None, reporter_id=None, reason="spam"):
         "reason": reason,
         "status": "pending",
         "created_at": now,
-        "_benchmark": True
+        "_benchmark": True,
     }
 
     reports.insert_one(report_doc)
     return report_doc
+
 
 def cleanup():
     """Supprime tous les rapports insérés par le benchmark."""
     db = get_db()
     reports = db[COLLECTIONS["reports"]]
     reports.delete_many({"_benchmark": True})
-
-

@@ -1,9 +1,11 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(limit=10):
     """
@@ -14,12 +16,7 @@ def run(limit=10):
     messages = db[COLLECTIONS["messages"]]
 
     pipeline = [
-        {
-            "$group": {
-                "_id": "$sender_id",
-                "message_count": {"$sum": 1}
-            }
-        },
+        {"$group": {"_id": "$sender_id", "message_count": {"$sum": 1}}},
         {"$sort": {"message_count": -1}},
         {"$limit": limit},
         {
@@ -27,7 +24,7 @@ def run(limit=10):
                 "from": COLLECTIONS["users"],
                 "localField": "_id",
                 "foreignField": "_id",
-                "as": "user_info"
+                "as": "user_info",
             }
         },
         {
@@ -35,11 +32,9 @@ def run(limit=10):
                 "user_id": "$_id",
                 "pseudo": {"$arrayElemAt": ["$user_info.pseudo", 0]},
                 "message_count": 1,
-                "_id": 0
+                "_id": 0,
             }
-        }
+        },
     ]
 
     return list(messages.aggregate(pipeline))
-
-

@@ -1,13 +1,16 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from datetime import datetime, timezone
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
 
 # Cache pour restaurer l'état original
 _original_state = {}
+
 
 def _get_target():
     db = get_db()
@@ -16,6 +19,7 @@ def _get_target():
     if not msg:
         return None, None
     return db, msg
+
 
 def run(message_id=None, new_content="Texte mis à jour après édition."):
     """
@@ -39,13 +43,16 @@ def run(message_id=None, new_content="Texte mis à jour après édition."):
 
     res = messages.update_one(
         {"_id": message_id},
-        {"$set": {
-            "content": new_content,
-            "edited": True,
-            "edited_at": datetime.now(timezone.utc).replace(tzinfo=None)
-        }}
+        {
+            "$set": {
+                "content": new_content,
+                "edited": True,
+                "edited_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            }
+        },
     )
     return res.modified_count
+
 
 def cleanup():
     """Restaure le message à son état original."""
@@ -64,5 +71,3 @@ def cleanup():
             messages.update_one({"_id": mid}, {"$set": restore, "$unset": {"edited_at": ""}})
             return
         messages.update_one({"_id": mid}, {"$set": restore})
-
-

@@ -1,36 +1,47 @@
 # benchmarks/consistency_test.py
 # Test de cohérence : write concern T1/T2, read concern T4.
-import sys, os, csv, statistics, time
+import csv
+import os
+import statistics
+import sys
+import time
 from datetime import datetime, timezone
+
 from bson import ObjectId
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from pymongo import MongoClient, WriteConcern
+from pymongo import DESCENDING, MongoClient, WriteConcern
 from pymongo.read_concern import ReadConcern
-from pymongo import DESCENDING
-from config.settings import MONGO_URI, MONGO_DB, COLLECTIONS
+
+from config.settings import COLLECTIONS, MONGO_DB, MONGO_URI
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
+
 
 def get_members_up():
     try:
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         status = client.admin.command("replSetGetStatus")
-        members_up = sum(1 for m in status.get("members", []) if m.get("stateStr") in ["PRIMARY", "SECONDARY"])
+        members_up = sum(
+            1 for m in status.get("members", []) if m.get("stateStr") in ["PRIMARY", "SECONDARY"]
+        )
         client.close()
         return members_up
     except Exception as e:
         print(f"replSetGetStatus error (toléré): {e}")
         return 1
 
+
 def get_heavy_conv(db):
     pipeline = [
         {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
-        {"$limit": 1}
+        {"$limit": 1},
     ]
     top = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
     return top[0]["_id"] if top else None
+
 
 def make_message(conv_id, user_id=None):
     return {
@@ -41,8 +52,9 @@ def make_message(conv_id, user_id=None):
         "type": "text",
         "ts": datetime.now(timezone.utc).replace(tzinfo=None),
         "deleted": False,
-        "_benchmark": True
+        "_benchmark": True,
     }
+
 
 def bench_t1_write_concern(db, conv_id, wc_value, runs=50):
     """Insère 1 message avec write concern w=wc_value, runs fois."""
@@ -59,6 +71,7 @@ def bench_t1_write_concern(db, conv_id, wc_value, runs=50):
         coll.delete_one({"_id": result.inserted_id, "_benchmark": True})
     return times
 
+
 def bench_t2_write_concern(db, conv_id, wc_value, runs=5):
     """Insère 10 000 messages avec write concern w=wc_value, runs fois."""
     times = []
@@ -74,18 +87,22 @@ def bench_t2_write_concern(db, conv_id, wc_value, runs=5):
         coll.delete_many({"_benchmark": True})
     return times
 
+
 def bench_t4_read_concern(db, conv_id, rc_level, runs=30):
     """Requête T4 (50 derniers messages) avec read concern rc_level, runs fois."""
     times = []
-    coll = db[COLLECTIONS["messages"]].with_options(
-        read_concern=ReadConcern(level=rc_level)
-    )
+    coll = db[COLLECTIONS["messages"]].with_options(read_concern=ReadConcern(level=rc_level))
     for _ in range(runs):
         t0 = time.time()
-        list(coll.find({"conversation_id": conv_id, "deleted": False}).sort("ts", DESCENDING).limit(50))
+        list(
+            coll.find({"conversation_id": conv_id, "deleted": False})
+            .sort("ts", DESCENDING)
+            .limit(50)
+        )
         elapsed = (time.time() - t0) * 1000
         times.append(elapsed)
     return times
+
 
 def calc_stats(times, n_runs=None):
     n = n_runs or len(times)
@@ -93,8 +110,9 @@ def calc_stats(times, n_runs=None):
         "runs": n,
         "avg_ms": round(statistics.mean(times), 2),
         "median_ms": round(statistics.median(times), 2),
-        "p95_ms": round(sorted(times)[int(len(times) * 0.95)], 2)
+        "p95_ms": round(sorted(times)[int(len(times) * 0.95)], 2),
     }
+
 
 def main():
     client = MongoClient(MONGO_URI)
@@ -149,13 +167,25 @@ def main():
 
     out_path = os.path.join(RESULTS_DIR, "consistency_test.csv")
     with open(out_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["test_id","setting","runs","avg_ms","median_ms","p95_ms","members_up"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "test_id",
+                "setting",
+                "runs",
+                "avg_ms",
+                "median_ms",
+                "p95_ms",
+                "members_up",
+            ],
+        )
         writer.writeheader()
         writer.writerows(rows)
 
     print(f"\nRésultats écrits dans {out_path}")
     print("IMPORTANT : résultats à relancer quand mongo3 (machine B) sera disponible.")
     client.close()
+
 
 if __name__ == "__main__":
     main()

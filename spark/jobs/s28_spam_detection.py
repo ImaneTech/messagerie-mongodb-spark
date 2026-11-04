@@ -1,29 +1,30 @@
 import os
 import time
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
 MONGO_URI = os.environ["MONGO_URI"]
 
-spark = SparkSession.builder \
-    .appName("S28_SpamDetection") \
-    .config("spark.mongodb.read.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.write.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.read.database", "chatdb") \
-    .config("spark.mongodb.write.database", "chatdb") \
+spark = (
+    SparkSession.builder.appName("S28_SpamDetection")
+    .config("spark.mongodb.read.connection.uri", MONGO_URI)
+    .config("spark.mongodb.write.connection.uri", MONGO_URI)
+    .config("spark.mongodb.read.database", "chatdb")
+    .config("spark.mongodb.write.database", "chatdb")
     .getOrCreate()
+)
 
 # Lire messages de type text
 msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
-msgs_df = msgs_df.filter(F.col("type") == "text") \
-                 .select("sender_id", "content", "conversation_id", "ts")
+msgs_df = msgs_df.filter(F.col("type") == "text").select(
+    "sender_id", "content", "conversation_id", "ts"
+)
 
 # Fenêtre glissante : 1 heure, pas de 10 minutes (évite les coupures aux bords)
 windowed = msgs_df.groupBy(
-    "sender_id",
-    "content",
-    F.window(F.col("ts"), "1 hour", "10 minutes")
+    "sender_id", "content", F.window(F.col("ts"), "1 hour", "10 minutes")
 ).agg(F.countDistinct("conversation_id").alias("nb_conversations"))
 
 # Filtrer les spammeurs potentiels (> 20 conversations distinctes dans la fenêtre)
@@ -31,9 +32,9 @@ spam_raw = windowed.filter(F.col("nb_conversations") > 20)
 
 # Dédupliquer par (sender_id, content) : garder la fenêtre avec le max de nb_conversations
 dedup_window = Window.partitionBy("sender_id", "content").orderBy(F.col("nb_conversations").desc())
-spam = spam_raw.withColumn("rn", F.row_number().over(dedup_window)) \
-               .filter(F.col("rn") == 1) \
-               .drop("rn")
+spam = (
+    spam_raw.withColumn("rn", F.row_number().over(dedup_window)).filter(F.col("rn") == 1).drop("rn")
+)
 
 spam.show(20, truncate=50)
 

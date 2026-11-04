@@ -1,11 +1,14 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl_seconds=3600):
     """
@@ -39,16 +42,15 @@ def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl
         "edited": False,
         "deleted": False,
         "expire_at": expire_at,
-        "_benchmark": True
+        "_benchmark": True,
     }
 
     messages.insert_one(doc)
     return doc
+
 
 def cleanup():
     """Supprime tous les messages éphémères insérés par le benchmark."""
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
     messages.delete_many({"_benchmark": True})
-
-

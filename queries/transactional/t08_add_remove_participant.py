@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config.settings import COLLECTIONS
@@ -7,6 +8,7 @@ from queries.utils import get_db
 
 # Cache pour les IDs utilisés dans le bench (pour pouvoir restaurer)
 _bench_state = {}
+
 
 def run(conversation_id=None, user_id=None, action="add"):
     """
@@ -37,18 +39,16 @@ def run(conversation_id=None, user_id=None, action="add"):
             {"_id": conversation_id, "participants.user_id": {"$ne": user_id}},
             {
                 "$push": {"participants": {"user_id": user_id, "role": "member"}},
-                "$inc": {"participants_count": 1}
-            }
+                "$inc": {"participants_count": 1},
+            },
         )
     else:
         res = conversations.update_one(
             {"_id": conversation_id, "participants.user_id": user_id},
-            {
-                "$pull": {"participants": {"user_id": user_id}},
-                "$inc": {"participants_count": -1}
-            }
+            {"$pull": {"participants": {"user_id": user_id}}, "$inc": {"participants_count": -1}},
         )
     return res.modified_count
+
 
 def cleanup():
     """Retire le participant ajouté par le benchmark (opération réversible)."""
@@ -59,14 +59,10 @@ def cleanup():
         conversations = db[COLLECTIONS["conversations"]]
         conversations.update_one(
             {"_id": cid, "participants.user_id": uid},
-            {
-                "$pull": {"participants": {"user_id": uid}},
-                "$inc": {"participants_count": -1}
-            }
+            {"$pull": {"participants": {"user_id": uid}}, "$inc": {"participants_count": -1}},
         )
+
 
 def run_bench():
     """Benchmark : add seulement (cleanup retire ensuite)."""
     return run(action="add")
-
-

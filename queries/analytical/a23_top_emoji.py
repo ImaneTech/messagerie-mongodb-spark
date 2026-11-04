@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config.settings import COLLECTIONS
@@ -19,10 +20,7 @@ def run(limit=10):
         {"$group": {"_id": "$reactions.emoji", "count": {"$sum": 1}}},
         {"$project": {"emoji": "$_id", "count": 1, "_id": 0}},
         {"$sort": {"count": -1}},
-        {"$limit": limit}
+        {"$limit": limit},
     ]
 
     return list(messages.aggregate(pipeline))
-
-
-

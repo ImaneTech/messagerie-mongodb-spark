@@ -1,17 +1,19 @@
 import os
 import time
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 MONGO_URI = os.environ["MONGO_URI"]
 
-spark = SparkSession.builder \
-    .appName("S29_ReportRateBySender") \
-    .config("spark.mongodb.read.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.write.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.read.database", "chatdb") \
-    .config("spark.mongodb.write.database", "chatdb") \
+spark = (
+    SparkSession.builder.appName("S29_ReportRateBySender")
+    .config("spark.mongodb.read.connection.uri", MONGO_URI)
+    .config("spark.mongodb.write.connection.uri", MONGO_URI)
+    .config("spark.mongodb.read.database", "chatdb")
+    .config("spark.mongodb.write.database", "chatdb")
     .getOrCreate()
+)
 
 # Lire messages
 msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
@@ -26,15 +28,19 @@ sent_count = msgs_df.groupBy("sender_id").agg(F.count("message_id").alias("sent_
 
 # Join messages avec reports pour trouver les messages signalés
 reported_msgs = msgs_df.join(reports_df, msgs_df.message_id == reports_df.rep_message_id, "inner")
-reported_count = reported_msgs.groupBy("sender_id").agg(F.count("message_id").alias("reported_count"))
+reported_count = reported_msgs.groupBy("sender_id").agg(
+    F.count("message_id").alias("reported_count")
+)
 
 # Join sent_count avec reported_count
-result = sent_count.join(reported_count, "sender_id", "left") \
-    .fillna(0, subset=["reported_count"]) \
-    .withColumn("report_rate", F.col("reported_count") / F.col("sent_count")) \
-    .filter(F.col("sent_count") >= 20) \
-    .orderBy(F.col("report_rate").desc()) \
+result = (
+    sent_count.join(reported_count, "sender_id", "left")
+    .fillna(0, subset=["reported_count"])
+    .withColumn("report_rate", F.col("reported_count") / F.col("sent_count"))
+    .filter(F.col("sent_count") >= 20)
+    .orderBy(F.col("report_rate").desc())
     .limit(20)
+)
 
 result.show()
 

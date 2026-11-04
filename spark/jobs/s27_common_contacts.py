@@ -1,17 +1,19 @@
 import os
 import time
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 MONGO_URI = os.environ["MONGO_URI"]
 
-spark = SparkSession.builder \
-    .appName("S27_CommonContacts") \
-    .config("spark.mongodb.read.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.write.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.read.database", "chatdb") \
-    .config("spark.mongodb.write.database", "chatdb") \
+spark = (
+    SparkSession.builder.appName("S27_CommonContacts")
+    .config("spark.mongodb.read.connection.uri", MONGO_URI)
+    .config("spark.mongodb.write.connection.uri", MONGO_URI)
+    .config("spark.mongodb.read.database", "chatdb")
+    .config("spark.mongodb.write.database", "chatdb")
     .getOrCreate()
+)
 
 # Lire users (colonnes _id et contacts)
 users_df = spark.read.format("mongodb").option("collection", "users").load()
@@ -26,8 +28,11 @@ print(f"Lignes après explode : {exploded.count()}")
 a = exploded.alias("a")
 b = exploded.alias("b")
 
-joined = a.join(b, (F.col("a.contact_id") == F.col("b.contact_id")) & (F.col("a.user_id") < F.col("b.user_id"))) \
-          .select(F.col("a.user_id").alias("user_a"), F.col("b.user_id").alias("user_b"), F.col("a.contact_id"))
+joined = a.join(
+    b, (F.col("a.contact_id") == F.col("b.contact_id")) & (F.col("a.user_id") < F.col("b.user_id"))
+).select(
+    F.col("a.user_id").alias("user_a"), F.col("b.user_id").alias("user_b"), F.col("a.contact_id")
+)
 
 print(f"Lignes intermédiaires après self-join : {joined.count()}")
 

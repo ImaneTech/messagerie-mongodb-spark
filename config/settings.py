@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,5 +15,5 @@ COLLECTIONS = {
     "conversations": "conversations",
     "messages": "messages",
     "read_status": "read_status",
-    "reports": "reports"
+    "reports": "reports",
 }
