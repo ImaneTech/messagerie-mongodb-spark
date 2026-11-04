@@ -47,24 +47,24 @@ transactional_queries = [
     ("T02", t02_bulk_import_messages,  "Import en masse de messages"),
     ("T03", t03_user_profile,          "Consulter profil utilisateur"),
     ("T04", t04_last_50_messages,      "50 derniers messages d'une conversation"),
-    ("T05", t05_previous_page,         "Pagination précédente"),
+    ("T05", t05_previous_page,         "Pagination precedente"),
     ("T06", t06_user_conversations,    "Lister conversations utilisateur"),
-    ("T07", t07_create_group,          "Créer un groupe"),
+    ("T07", t07_create_group,          "Creer un groupe"),
     ("T08", t08_add_remove_participant,"Ajouter/retirer participant"),
     ("T09", t09_edit_message,          "Modifier un message"),
     ("T10", t10_soft_delete_message,   "Suppression douce"),
-    ("T11", t11_add_reaction,          "Ajouter une réaction"),
+    ("T11", t11_add_reaction,          "Ajouter une reaction"),
     ("T12", t12_mark_conversation_read,"Marquer conversation comme lue"),
     ("T13", t13_unread_count,          "Compter messages non lus"),
-    ("T14", t14_ephemeral_messages_ttl,"Messages éphémères TTL"),
+    ("T14", t14_ephemeral_messages_ttl,"Messages ephemeres TTL"),
     ("T15", t15_report_message,        "Signaler un message"),
 ]
 
 analytical_queries = [
     ("A16", a16_messages_per_day,              "Messages par jour"),
     ("A17", a17_top_active_users,              "Top utilisateurs actifs"),
-    ("A18", a18_messages_by_type,              "Répartition par type"),
-    ("A19", a19_avg_attachment_size_by_mime,   "Taille moyenne pièces jointes"),
+    ("A18", a18_messages_by_type,              "Repartition par type"),
+    ("A19", a19_avg_attachment_size_by_mime,   "Taille moyenne pieces jointes"),
     ("A20", a20_groups_over_50,                "Groupes de plus de 50"),
     ("A21", a21_inactive_users_30d,            "Utilisateurs inactifs 30j"),
     ("A22", a22_messages_per_hour,             "Messages par heure"),
@@ -73,7 +73,7 @@ analytical_queries = [
     ("A25", a25_conversations_idle_7d,         "Conversations inactives 7j"),
 ]
 
-# Modules avec cleanup à appeler après timing
+# Modules avec cleanup a appeler apres timing
 WRITE_MODULES = {
     "T01": t01_send_message,
     "T02": t02_bulk_import_messages,
@@ -87,15 +87,17 @@ WRITE_MODULES = {
     "T15": t15_report_message,
 }
 
-print("\n=== Exécution des requêtes transactionnelles ===")
+print("\n=== Execution des requetes transactionnelles ===")
 for qid, module, desc in transactional_queries:
     try:
         result = module.run()
         timing = timed(module.run, runs=3)
-        # Cleanup après timing pour les modules write
+        # Cleanup apres timing pour les modules write
         if qid in WRITE_MODULES and hasattr(module, "cleanup"):
             module.cleanup()
         result_str = str(result)[:100] if result is not None else "None"
+        # Fix encoding issue for Windows console
+        result_str = result_str.encode('utf-8', errors='replace').decode('utf-8')
         results.append({
             "query_id": qid,
             "family": "transactional",
@@ -106,7 +108,7 @@ for qid, module, desc in transactional_queries:
             "runs": 3,
             "result_summary": result_str
         })
-        print(f"{qid} RUN-OK: {desc} — {timing['avg']:.2f} ms | résultat: {result_str[:80]}")
+        print(f"{qid} RUN-OK: {desc} - {timing['avg']:.2f} ms | resultat: {result_str[:80]}")
     except Exception as e:
         # Toujours tenter le cleanup en cas d'erreur partielle
         if qid in WRITE_MODULES and hasattr(module, "cleanup"):
@@ -126,12 +128,14 @@ for qid, module, desc in transactional_queries:
         })
         print(f"{qid} RUN-FAILED: {desc} — {str(e)}")
 
-print("\n=== Exécution des requêtes analytiques ===")
+print("\n=== Execution des requetes analytiques ===")
 for qid, module, desc in analytical_queries:
     try:
         result = module.run()
         timing = timed(module.run, runs=3)
         result_str = str(result)[:100] if result is not None else "None"
+        # Fix encoding issue for Windows console - replace problematic chars
+        result_str = result_str.encode('ascii', errors='replace').decode('ascii')
         results.append({
             "query_id": qid,
             "family": "analytical",
@@ -142,7 +146,7 @@ for qid, module, desc in analytical_queries:
             "runs": 3,
             "result_summary": result_str
         })
-        print(f"{qid} RUN-OK: {desc} — {timing['avg']:.2f} ms | résultat: {result_str[:80]}")
+        print(f"{qid} RUN-OK: {desc} - {timing['avg']:.2f} ms | resultat: {result_str[:80]}")
     except Exception as e:
         results.append({
             "query_id": qid,
@@ -160,8 +164,8 @@ for qid, module, desc in analytical_queries:
 counts_after = collection_counts(db)
 print_counts("Counts APRÈS le run", counts_after)
 
-# ── Vérification que les counts sont identiques ───────────────────────────────
-print("\n=== Vérification counts avant/après ===")
+# Verification que les counts sont identiques
+print("\n=== Verification counts avant/apres ===")
 all_equal = True
 for col in counts_before:
     before = counts_before[col]
@@ -169,19 +173,19 @@ for col in counts_before:
     status = "OK" if before == after else "DIFF"
     if before != after:
         all_equal = False
-    print(f"  {col}: {before} → {after} [{status}]")
+    print(f"  {col}: {before} -> {after} [{status}]")
 
 if all_equal:
-    print("  ✓ Tous les counts sont identiques.")
+    print("  [OK] Tous les counts sont identiques.")
 else:
-    print("  ✗ ATTENTION : des counts ont changé — vérifier les modules write.")
+    print("  [!] ATTENTION : des counts ont change - verifier les modules write.")
 
-# ── Sauvegarde CSV ────────────────────────────────────────────────────────────
+# Sauvegarde CSV
 save_query_results(results)
-print("\nRésultats sauvegardés dans benchmarks/results/queries_native.csv")
+print("\nResultats sauvegardes dans benchmarks/results/queries_native.csv")
 
-# ── Suppression de benchmarks.json si présent ────────────────────────────────
+# Suppression de benchmarks.json si present
 bj = os.path.join(os.path.dirname(__file__), "results", "benchmarks.json")
 if os.path.exists(bj):
     os.remove(bj)
-    print("benchmarks.json supprimé (redondant).")
+    print("benchmarks.json supprime (redondant).")
