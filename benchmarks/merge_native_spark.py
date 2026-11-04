@@ -4,6 +4,7 @@ Compare les résultats natifs (MongoDB PyMongo) et Spark pour A16, A17, A18.
 Lit queries_native.csv pour les timings natifs.
 Lit les collections stats_cmp_a16/17/18 pour les résultats Spark.
 Relit spark_jobs.csv pour les timings Spark cmp (colonnes avg_ms lignes cmp_a16 etc.).
+Les jobs de comparaison sont dans spark/comparaison/.
 Écrit native_vs_spark.csv : query_id, native_avg_ms, spark_avg_ms, spark_session_ms, same_result.
 """
 import sys

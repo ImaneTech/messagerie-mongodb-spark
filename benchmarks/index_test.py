@@ -1,7 +1,8 @@
 # benchmarks/index_test.py
-# Test d'index pour T4 et T6 : 30 runs avec index, 30 runs avec hint($natural:1), alternés.
-import sys, os, csv, statistics, time
+# Test d'index pour T4, T5, T6 : timing (30 runs) + explain plans (JSON)
+import sys, os, csv, json, statistics, time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from pymongo import DESCENDING
 from config.settings import COLLECTIONS
 from queries.utils import get_db
 
@@ -38,6 +39,7 @@ def explain_query(db, collection_name, query_filter, sort=None, limit=None, hint
     return db.command(cmd)
 
 def build_stage_chain(plan):
+    """Reconstruit la chaîne de stages : ex 'LIMIT > FETCH > IXSCAN'."""
     if not isinstance(plan, dict): return ""
     stage = plan.get("stage", "")
     parts = [stage] if stage else []
@@ -49,7 +51,18 @@ def build_stage_chain(plan):
     if isinstance(subs, list) and subs:
         child = build_stage_chain(subs[0])
         if child: parts.append(child)
+    shards = plan.get("shards")
+    if isinstance(shards, list) and shards:
+        child = build_stage_chain(shards[0].get("winningPlan", {}))
+        if child: parts.append(child)
     return " > ".join(parts)
+
+def save_explain(filename, summary):
+    """Sauvegarde le résumé explain en JSON."""
+    path = os.path.join(RESULTS_DIR, filename)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2, ensure_ascii=False)
+    print(f"  Ecrit : {filename}")
 
 def run_timed_query(db, collection_name, query_filter, sort_spec, limit, hint=None):
     """Exécute la requête et retourne (elapsed_ms, nReturned)."""
@@ -61,6 +74,85 @@ def run_timed_query(db, collection_name, query_filter, sort_spec, limit, hint=No
     docs = list(cursor)
     elapsed = (time.time() - t0) * 1000
     return elapsed, len(docs)
+
+def run_explain_test(db, conv_id, user_id):
+    """Execute explain plans T4, T5, T6 et sauvegarde en JSON."""
+    print("\n=== Explain plans T4, T5, T6 ===")
+
+    # T4 avec index
+    print("T4 (avec index):")
+    raw = explain_query(db, COLLECTIONS["messages"],
+                       {"conversation_id": conv_id, "deleted": False},
+                       sort={"ts": -1}, limit=50)
+    summary = {
+        "stage_chain": build_stage_chain(raw.get("queryPlanner", {}).get("winningPlan", {})),
+        "totalKeysExamined": raw.get("executionStats", {}).get("totalKeysExamined"),
+        "totalDocsExamined": raw.get("executionStats", {}).get("totalDocsExamined"),
+        "nReturned": raw.get("executionStats", {}).get("nReturned"),
+        "executionTimeMillis": raw.get("executionStats", {}).get("executionTimeMillis"),
+    }
+    save_explain("explain_T4.json", summary)
+
+    # T4 sans index
+    print("T4 (sans index):")
+    raw = explain_query(db, COLLECTIONS["messages"],
+                       {"conversation_id": conv_id, "deleted": False},
+                       sort={"ts": -1}, limit=50, hint={"$natural": 1})
+    summary = {
+        "stage_chain": build_stage_chain(raw.get("queryPlanner", {}).get("winningPlan", {})),
+        "totalKeysExamined": raw.get("executionStats", {}).get("totalKeysExamined"),
+        "totalDocsExamined": raw.get("executionStats", {}).get("totalDocsExamined"),
+        "nReturned": raw.get("executionStats", {}).get("nReturned"),
+        "executionTimeMillis": raw.get("executionStats", {}).get("executionTimeMillis"),
+    }
+    save_explain("explain_T4_noindex.json", summary)
+
+    # T5 avec index
+    print("T5 (avec index):")
+    sample = list(db[COLLECTIONS["messages"]].find(
+        {"conversation_id": conv_id, "deleted": False}
+    ).sort("ts", DESCENDING).skip(10).limit(1))
+    before_ts = sample[0]["ts"] if sample else None
+    q5 = {"conversation_id": conv_id, "deleted": False}
+    if before_ts:
+        q5["ts"] = {"$lt": before_ts}
+    raw = explain_query(db, COLLECTIONS["messages"], q5, sort={"ts": -1}, limit=50)
+    summary = {
+        "stage_chain": build_stage_chain(raw.get("queryPlanner", {}).get("winningPlan", {})),
+        "totalKeysExamined": raw.get("executionStats", {}).get("totalKeysExamined"),
+        "totalDocsExamined": raw.get("executionStats", {}).get("totalDocsExamined"),
+        "nReturned": raw.get("executionStats", {}).get("nReturned"),
+        "executionTimeMillis": raw.get("executionStats", {}).get("executionTimeMillis"),
+    }
+    save_explain("explain_T5.json", summary)
+
+    # T6 avec index
+    print("T6 (avec index):")
+    raw = explain_query(db, COLLECTIONS["conversations"],
+                       {"participants.user_id": user_id},
+                       sort={"last_message_at": -1}, limit=20)
+    summary = {
+        "stage_chain": build_stage_chain(raw.get("queryPlanner", {}).get("winningPlan", {})),
+        "totalKeysExamined": raw.get("executionStats", {}).get("totalKeysExamined"),
+        "totalDocsExamined": raw.get("executionStats", {}).get("totalDocsExamined"),
+        "nReturned": raw.get("executionStats", {}).get("nReturned"),
+        "executionTimeMillis": raw.get("executionStats", {}).get("executionTimeMillis"),
+    }
+    save_explain("explain_T6.json", summary)
+
+    # T6 sans index
+    print("T6 (sans index):")
+    raw = explain_query(db, COLLECTIONS["conversations"],
+                       {"participants.user_id": user_id},
+                       sort={"last_message_at": -1}, limit=20, hint={"$natural": 1})
+    summary = {
+        "stage_chain": build_stage_chain(raw.get("queryPlanner", {}).get("winningPlan", {})),
+        "totalKeysExamined": raw.get("executionStats", {}).get("totalKeysExamined"),
+        "totalDocsExamined": raw.get("executionStats", {}).get("totalDocsExamined"),
+        "nReturned": raw.get("executionStats", {}).get("nReturned"),
+        "executionTimeMillis": raw.get("executionStats", {}).get("executionTimeMillis"),
+    }
+    save_explain("explain_T6_noindex.json", summary)
 
 def bench(query_id, db, collection_name, query_filter, sort_spec, limit, n_runs=30):
     results = []
@@ -100,9 +192,12 @@ def main():
     print(f"T4 conv_id: {conv_id}")
     print(f"T6 user_id: {user_id}")
 
+    # Exécuter les explain plans (T4, T5, T6)
+    run_explain_test(db, conv_id, user_id)
+
+    # Benchmark timing (T4, T6)
     all_rows = []
 
-    # T4 : 50 derniers messages d'une conversation
     print("\nT4 index test (30+30 runs)...")
     rows_t4 = bench(
         "T4", db, COLLECTIONS["messages"],
@@ -111,7 +206,6 @@ def main():
     )
     all_rows.extend(rows_t4)
 
-    # T6 : conversations d'un utilisateur
     print("T6 index test (30+30 runs)...")
     rows_t6 = bench(
         "T6", db, COLLECTIONS["conversations"],
@@ -126,7 +220,7 @@ def main():
         writer.writeheader()
         writer.writerows(all_rows)
 
-    print(f"\nRésultats écrits dans {out_path}")
+    print(f"\nResultats ecrits dans {out_path}")
     for row in all_rows:
         print(f"  {row['query_id']} {row['mode']}: avg={row['avg_ms']}ms, docs={row['docs_examined']}, chain={row['stage_chain']}")
 
