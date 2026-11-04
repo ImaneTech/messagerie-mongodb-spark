@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config.settings import COLLECTIONS
@@ -18,10 +19,7 @@ def run():
         {"$project": {"hour": {"$hour": "$ts"}}},
         {"$group": {"_id": "$hour", "count": {"$sum": 1}}},
         {"$project": {"hour": "$_id", "count": 1, "_id": 0}},
-        {"$sort": {"hour": 1}}
+        {"$sort": {"hour": 1}},
     ]
 
     return list(messages.aggregate(pipeline))
-
-
-

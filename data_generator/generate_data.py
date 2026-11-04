@@ -1,6 +1,7 @@
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
+
 from faker import Faker
 
 fake = Faker()
@@ -40,22 +41,26 @@ def generate_users(num_users=10000, seed=42):
             inactive_days = random.randint(31, max(32, days_ago_created - 1))
             last_login = now - timedelta(days=inactive_days)
         else:
-            last_login = now - timedelta(days=random.randint(0, 20), seconds=random.randint(0, 86400))
+            last_login = now - timedelta(
+                days=random.randint(0, 20), seconds=random.randint(0, 86400)
+            )
 
-        users.append({
-            "_id": uid,
-            "pseudo": pseudo,
-            "phone": fake.phone_number()[:15],
-            "country": fake.country_code(),
-            "created_at": created_at,
-            "contacts": [],   # rempli ci-dessous
-            "settings": {
-                "notifications": random.choice([True, False]),
-                "theme": random.choice(["light", "dark", "system"]),
-                "read_receipts": random.choice([True, True, False])
-            },
-            "last_login": last_login
-        })
+        users.append(
+            {
+                "_id": uid,
+                "pseudo": pseudo,
+                "phone": fake.phone_number()[:15],
+                "country": fake.country_code(),
+                "created_at": created_at,
+                "contacts": [],  # rempli ci-dessous
+                "settings": {
+                    "notifications": random.choice([True, False]),
+                    "theme": random.choice(["light", "dark", "system"]),
+                    "read_receipts": random.choice([True, True, False]),
+                },
+                "last_login": last_login,
+            }
+        )
 
     # Carnet de contacts (orienté)
     for u in users:
@@ -96,18 +101,20 @@ def generate_conversations(users, num_groups=200, num_direct=7800, seed=42):
 
         conv_id = f"conv_p_{uuid.uuid4().hex[:10]}"
         created_at = now - timedelta(days=random.randint(10, 180))
-        conversations.append({
-            "_id": conv_id,
-            "type": "private",
-            "name": "",
-            "participants": [
-                {"user_id": u1, "role": "member"},
-                {"user_id": u2, "role": "member"}
-            ],
-            "participants_count": 2,
-            "created_at": created_at,
-            "last_message_at": created_at
-        })
+        conversations.append(
+            {
+                "_id": conv_id,
+                "type": "private",
+                "name": "",
+                "participants": [
+                    {"user_id": u1, "role": "member"},
+                    {"user_id": u2, "role": "member"},
+                ],
+                "participants_count": 2,
+                "created_at": created_at,
+                "last_message_at": created_at,
+            }
+        )
 
     # 2. Groupes
     for i in range(num_groups):
@@ -121,22 +128,26 @@ def generate_conversations(users, num_groups=200, num_direct=7800, seed=42):
             participants.append({"user_id": m, "role": role})
 
         created_at = now - timedelta(days=random.randint(15, 180))
-        group_name = random.choice([
-            f"Projet {fake.word().capitalize()}",
-            f"Groupe {fake.city()}",
-            f"Club {fake.bs().title()}",
-            f"Famille {fake.last_name()}",
-            f"Gaming {fake.first_name()}"
-        ])
-        conversations.append({
-            "_id": conv_id,
-            "type": "group",
-            "name": group_name,
-            "participants": participants,
-            "participants_count": count,
-            "created_at": created_at,
-            "last_message_at": created_at
-        })
+        group_name = random.choice(
+            [
+                f"Projet {fake.word().capitalize()}",
+                f"Groupe {fake.city()}",
+                f"Club {fake.bs().title()}",
+                f"Famille {fake.last_name()}",
+                f"Gaming {fake.first_name()}",
+            ]
+        )
+        conversations.append(
+            {
+                "_id": conv_id,
+                "type": "group",
+                "name": group_name,
+                "participants": participants,
+                "participants_count": count,
+                "created_at": created_at,
+                "last_message_at": created_at,
+            }
+        )
 
     return conversations
 
@@ -160,8 +171,8 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
     # Types MIME et extensions
     mime_types = {
         "image": [("image/jpeg", "jpg"), ("image/png", "png"), ("image/webp", "webp")],
-        "file":  [("application/pdf", "pdf"), ("application/zip", "zip"), ("text/plain", "txt")],
-        "voice": [("audio/ogg", "ogg"), ("audio/mp4", "m4a")]
+        "file": [("application/pdf", "pdf"), ("application/zip", "zip"), ("text/plain", "txt")],
+        "voice": [("audio/ogg", "ogg"), ("audio/mp4", "m4a")],
     }
     emojis = ["👍", "❤️", "😂", "🔥", "🎉", "👏", "😢", "😮", "🙏", "🚀"]
 
@@ -174,7 +185,9 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
     msgs_per_conv = [max(3, int(target_count * (w / total_weights))) for w in weights]
 
     # A25 : 15 % des conversations inactives depuis > 7 jours
-    idle_conv_indices = set(random.sample(range(len(conversations)), int(len(conversations) * 0.15)))
+    idle_conv_indices = set(
+        random.sample(range(len(conversations)), int(len(conversations) * 0.15))
+    )
     # 10 % des conversations ont des messages dans les dernières 24 h
     active_pool = [i for i in range(len(conversations)) if i not in idle_conv_indices]
     recent_conv_indices = set(random.sample(active_pool, int(len(conversations) * 0.10)))
@@ -225,11 +238,7 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
                     size = random.randint(50_000, 800_000)
                 else:
                     size = random.randint(200_000, 15_000_000)
-                attachment = {
-                    "name": f"{fake.word()}_{m_idx}.{ext}",
-                    "size": size,
-                    "mime": mime
-                }
+                attachment = {"name": f"{fake.word()}_{m_idx}.{ext}", "size": size, "mime": mime}
 
             reactions = []
             if random.random() < 0.25:
@@ -248,21 +257,27 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
             is_deleted = random.random() < 0.02
             is_edited = random.random() < 0.05
 
-            content = fake.sentence(nb_words=random.randint(3, 15)) if not is_deleted else "Ce message a été supprimé."
+            content = (
+                fake.sentence(nb_words=random.randint(3, 15))
+                if not is_deleted
+                else "Ce message a été supprimé."
+            )
 
-            messages.append({
-                "_id": f"msg_{uuid.uuid4().hex[:12]}",
-                "conversation_id": conv["_id"],
-                "sender_id": sender_id,
-                "ts": current_ts,
-                "type": m_type,
-                "content": content,
-                "attachment": attachment,
-                "reactions": reactions,
-                "edited": is_edited,
-                "deleted": is_deleted,
-                "expire_at": expire_at
-            })
+            messages.append(
+                {
+                    "_id": f"msg_{uuid.uuid4().hex[:12]}",
+                    "conversation_id": conv["_id"],
+                    "sender_id": sender_id,
+                    "ts": current_ts,
+                    "type": m_type,
+                    "content": content,
+                    "attachment": attachment,
+                    "reactions": reactions,
+                    "edited": is_edited,
+                    "deleted": is_deleted,
+                    "expire_at": expire_at,
+                }
+            )
 
         # Mettre à jour last_message_at de la conversation
         conv["last_message_at"] = current_ts
@@ -272,7 +287,7 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
     spam_contents = [
         "OFFRE SPÉCIALE ! Cliquez ici pour gagner !",
         "Promotion exclusive réservée aux membres VIP !",
-        "Gagnez 500€ maintenant, inscrivez-vous vite !"
+        "Gagnez 500€ maintenant, inscrivez-vous vite !",
     ]
     spam_senders = random.sample([u["_id"] for u in users], min(10, len(users)))
     spam_hour_start = now - timedelta(hours=12)
@@ -286,19 +301,21 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
                 sender_min_ts = user_created.get(sender, spam_hour_start)
                 if spam_ts < sender_min_ts:
                     spam_ts = sender_min_ts + timedelta(minutes=1)
-                messages.append({
-                    "_id": f"msg_{uuid.uuid4().hex[:12]}",
-                    "conversation_id": conv["_id"],
-                    "sender_id": sender,
-                    "ts": spam_ts,
-                    "type": "text",
-                    "content": spam_content,
-                    "attachment": None,
-                    "reactions": [],
-                    "edited": False,
-                    "deleted": False,
-                    "expire_at": None
-                })
+                messages.append(
+                    {
+                        "_id": f"msg_{uuid.uuid4().hex[:12]}",
+                        "conversation_id": conv["_id"],
+                        "sender_id": sender,
+                        "ts": spam_ts,
+                        "type": "text",
+                        "content": spam_content,
+                        "attachment": None,
+                        "reactions": [],
+                        "edited": False,
+                        "deleted": False,
+                        "expire_at": None,
+                    }
+                )
 
     # ── S26 : réponses rapides (back-and-forth) dans conversations privées ──
     # Pour chaque conversation cible, insérer 12 messages alternés espacés de 5 s
@@ -324,19 +341,21 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
                 # Décaler toute la séquence
                 base_ts = sender_min_ts + timedelta(seconds=1)
                 quick_ts = base_ts + timedelta(seconds=i * 5)
-            messages.append({
-                "_id": f"msg_{uuid.uuid4().hex[:12]}",
-                "conversation_id": conv_id,
-                "sender_id": sender,
-                "ts": quick_ts,
-                "type": "text",
-                "content": fake.sentence(nb_words=random.randint(2, 8)),
-                "attachment": None,
-                "reactions": [],
-                "edited": False,
-                "deleted": False,
-                "expire_at": None
-            })
+            messages.append(
+                {
+                    "_id": f"msg_{uuid.uuid4().hex[:12]}",
+                    "conversation_id": conv_id,
+                    "sender_id": sender,
+                    "ts": quick_ts,
+                    "type": "text",
+                    "content": fake.sentence(nb_words=random.randint(2, 8)),
+                    "attachment": None,
+                    "reactions": [],
+                    "edited": False,
+                    "deleted": False,
+                    "expire_at": None,
+                }
+            )
 
     return messages
 
@@ -364,11 +383,9 @@ def generate_read_status(conversations, messages, seed=42):
                 last_read_ts = latest_ts
             else:
                 last_read_ts = latest_ts - timedelta(hours=random.randint(1, 48))
-            read_statuses.append({
-                "conversation_id": cid,
-                "user_id": uid,
-                "last_read_ts": last_read_ts
-            })
+            read_statuses.append(
+                {"conversation_id": cid, "user_id": uid, "last_read_ts": last_read_ts}
+            )
 
     return read_statuses
 
@@ -390,14 +407,16 @@ def generate_reports(messages, total_reports=1200, seed=42):
 
     for m in sampled_messages:
         reporter_id = random.choice([u for u in all_senders if u != m["sender_id"]])
-        reports.append({
-            "_id": f"rep_{uuid.uuid4().hex[:10]}",
-            "message_id": m["_id"],
-            "reporter_id": reporter_id,
-            "reason": random.choice(reasons),
-            "status": random.choices(statuses, weights=[0.45, 0.40, 0.15])[0],
-            "created_at": m["ts"] + timedelta(minutes=random.randint(1, 180))
-        })
+        reports.append(
+            {
+                "_id": f"rep_{uuid.uuid4().hex[:10]}",
+                "message_id": m["_id"],
+                "reporter_id": reporter_id,
+                "reason": random.choice(reasons),
+                "status": random.choices(statuses, weights=[0.45, 0.40, 0.15])[0],
+                "created_at": m["ts"] + timedelta(minutes=random.randint(1, 180)),
+            }
+        )
 
     return reports
 
@@ -407,7 +426,9 @@ def generate_all(num_users=10000, num_groups=200, num_direct=7800, target_messag
     Génère le dataset complet interconnecté pour chatdb.
     """
     users = generate_users(num_users=num_users, seed=seed)
-    conversations = generate_conversations(users, num_groups=num_groups, num_direct=num_direct, seed=seed)
+    conversations = generate_conversations(
+        users, num_groups=num_groups, num_direct=num_direct, seed=seed
+    )
     messages = generate_messages(conversations, users, target_count=target_messages, seed=seed)
     read_statuses = generate_read_status(conversations, messages, seed=seed)
     reports = generate_reports(messages, total_reports=1200, seed=seed)
@@ -417,7 +438,7 @@ def generate_all(num_users=10000, num_groups=200, num_direct=7800, target_messag
         "conversations": conversations,
         "messages": messages,
         "read_status": read_statuses,
-        "reports": reports
+        "reports": reports,
     }
 
 

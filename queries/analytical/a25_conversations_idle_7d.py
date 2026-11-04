@@ -1,8 +1,10 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from datetime import datetime, timedelta
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
 
@@ -18,17 +20,16 @@ def run():
 
     pipeline = [
         {"$match": {"last_message_at": {"$lt": cutoff}}},
-        {"$project": {
-            "_id": 0,
-            "conversation_id": "$_id",
-            "name": 1,
-            "type": 1,
-            "last_message_at": 1
-        }},
-        {"$sort": {"last_message_at": 1}}
+        {
+            "$project": {
+                "_id": 0,
+                "conversation_id": "$_id",
+                "name": 1,
+                "type": 1,
+                "last_message_at": 1,
+            }
+        },
+        {"$sort": {"last_message_at": 1}},
     ]
 
     return list(conversations.aggregate(pipeline))
-
-
-

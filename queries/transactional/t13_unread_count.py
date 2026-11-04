@@ -1,10 +1,13 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pymongo import DESCENDING
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(conversation_id=None, user_id=None):
     """
@@ -31,11 +34,9 @@ def run(conversation_id=None, user_id=None):
         last_read = st.get("last_read_ts")
         if not last_read:
             continue
-        count = messages.count_documents({
-            "conversation_id": cid,
-            "deleted": False,
-            "ts": {"$gt": last_read}
-        })
+        count = messages.count_documents(
+            {"conversation_id": cid, "deleted": False, "ts": {"$gt": last_read}}
+        )
         if count > 0:
             return count
 
@@ -45,7 +46,7 @@ def run(conversation_id=None, user_id=None):
         {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
         {"$match": {"count": {"$gte": 20}}},
         {"$sort": {"count": -1}},
-        {"$limit": 1}
+        {"$limit": 1},
     ]
     top = list(messages.aggregate(pipeline))
     if not top:
@@ -53,10 +54,12 @@ def run(conversation_id=None, user_id=None):
     target_conv = top[0]["_id"]
 
     # Trouver le 20e message le plus récent
-    msg_20th = list(messages.find(
-        {"conversation_id": target_conv, "deleted": False},
-        {"ts": 1}
-    ).sort("ts", DESCENDING).skip(19).limit(1))
+    msg_20th = list(
+        messages.find({"conversation_id": target_conv, "deleted": False}, {"ts": 1})
+        .sort("ts", DESCENDING)
+        .skip(19)
+        .limit(1)
+    )
     if not msg_20th:
         return 0
     ts_20th = msg_20th[0]["ts"]
@@ -70,7 +73,7 @@ def run(conversation_id=None, user_id=None):
         # Mettre à jour last_read_ts au 20e message
         read_status.update_one(
             {"conversation_id": target_conv, "user_id": target_user},
-            {"$set": {"last_read_ts": ts_20th}}
+            {"$set": {"last_read_ts": ts_20th}},
         )
     else:
         # Utiliser le premier utilisateur connu
@@ -79,29 +82,23 @@ def run(conversation_id=None, user_id=None):
         if not target_user:
             return 0
         old_ts = None
-        read_status.insert_one({
-            "conversation_id": target_conv,
-            "user_id": target_user,
-            "last_read_ts": ts_20th
-        })
+        read_status.insert_one(
+            {"conversation_id": target_conv, "user_id": target_user, "last_read_ts": ts_20th}
+        )
 
     # Compter les non-lus
-    count = messages.count_documents({
-        "conversation_id": target_conv,
-        "deleted": False,
-        "ts": {"$gt": ts_20th}
-    })
+    count = messages.count_documents(
+        {"conversation_id": target_conv, "deleted": False, "ts": {"$gt": ts_20th}}
+    )
 
     # Restaurer l'ancienne valeur
     if old_ts is not None:
         read_status.update_one(
             {"conversation_id": target_conv, "user_id": target_user},
-            {"$set": {"last_read_ts": old_ts}}
+            {"$set": {"last_read_ts": old_ts}},
         )
     else:
         # On avait inséré un doc de test : le supprimer
         read_status.delete_one({"conversation_id": target_conv, "user_id": target_user})
 
     return count
-
-

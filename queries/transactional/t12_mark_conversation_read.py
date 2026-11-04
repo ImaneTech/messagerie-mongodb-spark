@@ -1,13 +1,16 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from datetime import datetime, timezone
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
 
 # Cache pour restaurer l'état original
 _original_state = {}
+
 
 def run(conversation_id=None, user_id=None, last_read_ts=None):
     """
@@ -45,9 +48,10 @@ def run(conversation_id=None, user_id=None, last_read_ts=None):
     res = read_status.update_one(
         {"conversation_id": conversation_id, "user_id": user_id},
         {"$set": {"last_read_ts": last_read_ts}},
-        upsert=True
+        upsert=True,
     )
     return res.modified_count or (1 if res.upserted_id else 0)
+
 
 def cleanup():
     """Restaure le document read_status à son état original."""
@@ -61,10 +65,8 @@ def cleanup():
             if original_ts:
                 read_status.update_one(
                     {"conversation_id": cid, "user_id": uid},
-                    {"$set": {"last_read_ts": original_ts}}
+                    {"$set": {"last_read_ts": original_ts}},
                 )
         else:
             # Le document a été créé par upsert, le supprimer
             read_status.delete_one({"conversation_id": cid, "user_id": uid})
-
-

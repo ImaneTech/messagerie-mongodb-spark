@@ -1,8 +1,10 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(user_id=None, pseudo=None):
     """
@@ -24,5 +26,3 @@ def run(user_id=None, pseudo=None):
 
     profile = users.find_one(query)
     return profile
-
-

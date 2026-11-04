@@ -1,11 +1,15 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+
 from pymongo import InsertOne
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(conversation_id=None, sender_id=None, count=10000):
     """
@@ -41,17 +45,16 @@ def run(conversation_id=None, sender_id=None, count=10000):
             "edited": False,
             "deleted": False,
             "expire_at": None,
-            "_benchmark": True
+            "_benchmark": True,
         }
         operations.append(InsertOne(msg_doc))
 
     result = messages.bulk_write(operations, ordered=False)
     return result.inserted_count
 
+
 def cleanup():
     """Supprime tous les messages insérés par le benchmark."""
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
     messages.delete_many({"_benchmark": True})
-
-

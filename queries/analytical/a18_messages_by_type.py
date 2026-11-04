@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config.settings import COLLECTIONS
@@ -17,10 +18,7 @@ def run():
     pipeline = [
         {"$group": {"_id": "$type", "count": {"$sum": 1}}},
         {"$project": {"type": "$_id", "count": 1, "_id": 0}},
-        {"$sort": {"count": -1}}
+        {"$sort": {"count": -1}},
     ]
 
     return list(messages.aggregate(pipeline))
-
-
-

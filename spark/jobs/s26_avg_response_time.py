@@ -1,5 +1,6 @@
 import os
 import time
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
@@ -8,17 +9,20 @@ MAX_GAP_SECONDS = 3600
 
 MONGO_URI = os.environ["MONGO_URI"]
 
-spark = SparkSession.builder \
-    .appName("S26_AvgResponseTime") \
-    .config("spark.mongodb.read.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.write.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.read.database", "chatdb") \
-    .config("spark.mongodb.write.database", "chatdb") \
+spark = (
+    SparkSession.builder.appName("S26_AvgResponseTime")
+    .config("spark.mongodb.read.connection.uri", MONGO_URI)
+    .config("spark.mongodb.write.connection.uri", MONGO_URI)
+    .config("spark.mongodb.read.database", "chatdb")
+    .config("spark.mongodb.write.database", "chatdb")
     .getOrCreate()
+)
 
 # Lire conversations privées
 convs_df = spark.read.format("mongodb").option("collection", "conversations").load()
-private_ids = convs_df.filter(F.col("type") == "private").select("_id").withColumnRenamed("_id", "conv_id")
+private_ids = (
+    convs_df.filter(F.col("type") == "private").select("_id").withColumnRenamed("_id", "conv_id")
+)
 
 # Lire messages
 msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
@@ -31,19 +35,19 @@ msgs_private = msgs_df.join(private_ids, msgs_df.conversation_id == private_ids.
 w = Window.partitionBy("conversation_id").orderBy("ts")
 
 # Lag de sender_id et ts
-msgs_w = msgs_private.withColumn("prev_sender", F.lag("sender_id").over(w)) \
-                     .withColumn("prev_ts", F.lag("ts").over(w))
+msgs_w = msgs_private.withColumn("prev_sender", F.lag("sender_id").over(w)).withColumn(
+    "prev_ts", F.lag("ts").over(w)
+)
 
 # Une réponse valide : sender diffère du précédent ET 0 < gap <= MAX_GAP_SECONDS
 # gap=0 (messages simultanés) = pas une réponse mesurable
-responses = msgs_w.filter(
-    F.col("prev_sender").isNotNull() &
-    (F.col("sender_id") != F.col("prev_sender"))
-).withColumn(
-    "delta_sec",
-    (F.unix_timestamp(F.col("ts")) - F.unix_timestamp(F.col("prev_ts"))).cast("double")
-).filter(
-    (F.col("delta_sec") > 0.0) & (F.col("delta_sec") <= MAX_GAP_SECONDS)
+responses = (
+    msgs_w.filter(F.col("prev_sender").isNotNull() & (F.col("sender_id") != F.col("prev_sender")))
+    .withColumn(
+        "delta_sec",
+        (F.unix_timestamp(F.col("ts")) - F.unix_timestamp(F.col("prev_ts"))).cast("double"),
+    )
+    .filter((F.col("delta_sec") > 0.0) & (F.col("delta_sec") <= MAX_GAP_SECONDS))
 )
 
 # --- 3 runs pour le timing ---
@@ -68,7 +72,7 @@ for i in range(3):
     ).collect()[0]
     run_times.append((time.time() - t0) * 1000)
     if i == 0:
-        global_avg    = agg_row["avg_sec"]
+        global_avg = agg_row["avg_sec"]
         global_median = agg_row["p50_sec"]
         response_count = agg_row["nb"]
         dist = agg_row
@@ -90,8 +94,7 @@ print(f"DUREE_MS={avg_ms:.0f}")
 
 # Moyenne par conversation
 per_conv = responses.groupBy("conversation_id").agg(
-    F.avg("delta_sec").alias("avg_sec"),
-    F.count("*").alias("response_count")
+    F.avg("delta_sec").alias("avg_sec"), F.count("*").alias("response_count")
 )
 
 print("Top 20 conversations les plus RAPIDES (avg_sec ASC) :")

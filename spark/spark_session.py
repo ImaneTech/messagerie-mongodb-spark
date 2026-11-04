@@ -1,5 +1,7 @@
 from pyspark.sql import SparkSession
-from config.settings import MONGO_URI, MONGO_DB
+
+from config.settings import MONGO_DB, MONGO_URI
+
 
 def get_spark_session(app_name="MessagingAnalytics"):
     """Crée et retourne une SparkSession configurée avec le connecteur MongoDB."""

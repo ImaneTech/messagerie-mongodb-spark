@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config.settings import COLLECTIONS
@@ -15,20 +16,9 @@ def run():
     reports = db[COLLECTIONS["reports"]]
 
     pipeline = [
-        {"$group": {
-            "_id": {"reason": "$reason", "status": "$status"},
-            "count": {"$sum": 1}
-        }},
-        {"$project": {
-            "reason": "$_id.reason",
-            "status": "$_id.status",
-            "count": 1,
-            "_id": 0
-        }},
-        {"$sort": {"count": -1}}
+        {"$group": {"_id": {"reason": "$reason", "status": "$status"}, "count": {"$sum": 1}}},
+        {"$project": {"reason": "$_id.reason", "status": "$_id.status", "count": 1, "_id": 0}},
+        {"$sort": {"count": -1}},
     ]
 
     return list(reports.aggregate(pipeline))
-
-
-

@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config.settings import COLLECTIONS
@@ -7,6 +8,7 @@ from queries.utils import get_db
 
 # Cache pour restaurer l'état original
 _original_state = {}
+
 
 def run(message_id=None, user_id=None, emoji="🔥"):
     """
@@ -31,10 +33,10 @@ def run(message_id=None, user_id=None, emoji="🔥"):
         _original_state["reactions"] = list(msg.get("reactions", []))
 
     res = messages.update_one(
-        {"_id": message_id},
-        {"$push": {"reactions": {"user_id": user_id, "emoji": emoji}}}
+        {"_id": message_id}, {"$push": {"reactions": {"user_id": user_id, "emoji": emoji}}}
     )
     return res.modified_count
+
 
 def cleanup():
     """Restaure le tableau reactions à son état original."""
@@ -43,8 +45,5 @@ def cleanup():
         db = get_db()
         messages = db[COLLECTIONS["messages"]]
         messages.update_one(
-            {"_id": mid},
-            {"$set": {"reactions": _original_state.get("reactions", [])}}
+            {"_id": mid}, {"$set": {"reactions": _original_state.get("reactions", [])}}
         )
-
-

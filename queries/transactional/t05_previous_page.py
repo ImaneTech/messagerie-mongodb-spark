@@ -1,10 +1,13 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pymongo import DESCENDING
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def get_query(conversation_id=None, before_ts=None, limit=50):
     db = get_db()
@@ -28,6 +31,7 @@ def get_query(conversation_id=None, before_ts=None, limit=50):
     cursor = messages.find(query).sort("ts", DESCENDING).limit(limit)
     return messages, cursor
 
+
 def run(conversation_id=None, before_ts=None, limit=50):
     """
     T05: Pagination vers l'arrière (page précédente).
@@ -38,11 +42,10 @@ def run(conversation_id=None, before_ts=None, limit=50):
         return []
     return list(cursor)
 
+
 def explain_plan(conversation_id=None, before_ts=None, limit=50):
     """Exécute et retourne le plan d'exécution explain()."""
     _, cursor = get_query(conversation_id, before_ts, limit)
     if not cursor:
         return {}
     return cursor.explain()
-
-

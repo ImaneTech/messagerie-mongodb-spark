@@ -1,10 +1,13 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import uuid
 from datetime import datetime, timezone
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text", attachment=None):
     """
@@ -38,17 +41,16 @@ def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text"
         "edited": False,
         "deleted": False,
         "expire_at": None,
-        "_benchmark": True
+        "_benchmark": True,
     }
 
     messages.insert_one(doc)
     # Pas de mise à jour de last_message_at pendant le bench pour éviter les effets secondaires
     return doc
 
+
 def cleanup():
     """Supprime tous les messages insérés par le benchmark."""
     db = get_db()
     messages = db[COLLECTIONS["messages"]]
     messages.delete_many({"_benchmark": True})
-
-

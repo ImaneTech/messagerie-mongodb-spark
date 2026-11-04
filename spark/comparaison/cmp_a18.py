@@ -1,5 +1,6 @@
 import os
 import time
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
@@ -8,13 +9,14 @@ MONGO_URI = os.environ["MONGO_URI"]
 
 # --- Session Spark ---
 t_session_start = time.time()
-spark = SparkSession.builder \
-    .appName("CMP_A18_MessagesByType") \
-    .config("spark.mongodb.read.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.write.connection.uri", MONGO_URI) \
-    .config("spark.mongodb.read.database", "chatdb") \
-    .config("spark.mongodb.write.database", "chatdb") \
+spark = (
+    SparkSession.builder.appName("CMP_A18_MessagesByType")
+    .config("spark.mongodb.read.connection.uri", MONGO_URI)
+    .config("spark.mongodb.write.connection.uri", MONGO_URI)
+    .config("spark.mongodb.read.database", "chatdb")
+    .config("spark.mongodb.write.database", "chatdb")
     .getOrCreate()
+)
 t_session_ms = (time.time() - t_session_start) * 1000
 print(f"SPARK_SESSION_MS={t_session_ms:.0f}")
 
@@ -26,10 +28,7 @@ for _ in range(3):
     t0 = time.time()
     msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
     result_df = (
-        msgs_df
-        .groupBy("type")
-        .agg(F.count("*").alias("count"))
-        .orderBy(F.col("count").desc())
+        msgs_df.groupBy("type").agg(F.count("*").alias("count")).orderBy(F.col("count").desc())
     )
     spark_rows = result_df.collect()
     spark_times.append((time.time() - t0) * 1000)

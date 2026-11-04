@@ -1,10 +1,13 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from datetime import datetime, timedelta, timezone
+
 from config.settings import COLLECTIONS
 from queries.utils import get_db
+
 
 def run(start_date=None, end_date=None):
     """
@@ -29,18 +32,11 @@ def run(start_date=None, end_date=None):
         {"$match": match_filter},
         {
             "$group": {
-                "_id": {
-                    "$dateToString": {
-                        "format": "%Y-%m-%d",
-                        "date": "$ts"
-                    }
-                },
-                "total_messages": {"$sum": 1}
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}},
+                "total_messages": {"$sum": 1},
             }
         },
-        {"$sort": {"_id": 1}}
+        {"$sort": {"_id": 1}},
     ]
 
     return list(messages.aggregate(pipeline))
-
-

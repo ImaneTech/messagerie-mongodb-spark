@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import streamlit as st
+from datetime import datetime, timedelta, timezone
+
 import pandas as pd
 import plotly.express as px
-from datetime import datetime, timedelta, timezone
+import streamlit as st
 from pymongo import MongoClient
-from config.settings import MONGO_URI, MONGO_DB, COLLECTIONS
+
+from config.settings import COLLECTIONS, MONGO_DB, MONGO_URI
 
 st.set_page_config(page_title="Messagerie — Tableau de bord", layout="wide")
 
@@ -20,6 +22,7 @@ RESULTS_DIR = os.path.join(WORKDIR, "benchmarks", "results")
 # ---------------------------------------------------------------------------
 # Fonctions de chargement des données
 # ---------------------------------------------------------------------------
+
 
 @st.cache_data(ttl=60)
 def get_counts():
@@ -40,9 +43,7 @@ def get_messages_per_day():
         {"$match": {"ts": {"$gte": start_30d}}},
         {
             "$group": {
-                "_id": {
-                    "$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}
-                },
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}},
                 "total": {"$sum": 1},
             }
         },
@@ -286,7 +287,9 @@ elif page == "Abus et modération":
 
     # stats_s29 — Top 20 taux de signalement
     st.subheader("Top 20 taux de signalement (stats_s29)")
-    docs_s29, err_s29 = get_stats_collection("stats_s29", sort_field="report_rate", ascending=False, limit=20)
+    docs_s29, err_s29 = get_stats_collection(
+        "stats_s29", sort_field="report_rate", ascending=False, limit=20
+    )
     if err_s29:
         st.info(err_s29)
     else:
@@ -329,7 +332,11 @@ elif page == "Engagement":
             df_s30.columns[0] if len(df_s30.columns) > 0 else None,
         )
         retain_col = next(
-            (c for c in df_s30.columns if "retain" in c.lower() or "rate" in c.lower() or "taux" in c.lower()),
+            (
+                c
+                for c in df_s30.columns
+                if "retain" in c.lower() or "rate" in c.lower() or "taux" in c.lower()
+            ),
             df_s30.columns[1] if len(df_s30.columns) > 1 else None,
         )
 
@@ -349,7 +356,9 @@ elif page == "Engagement":
 
     # stats_s26 — Temps de réponse top 20
     st.subheader("Temps de réponse — top 20 (stats_s26)")
-    docs_s26, err_s26 = get_stats_collection("stats_s26", sort_field="avg_sec", ascending=True, limit=20)
+    docs_s26, err_s26 = get_stats_collection(
+        "stats_s26", sort_field="avg_sec", ascending=True, limit=20
+    )
     if err_s26:
         st.info(err_s26)
     else:

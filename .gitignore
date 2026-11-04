@@ -1,14 +1,36 @@
+# Environment and secrets
 .env
 **/.env
+
+# Python
 .venv/
+venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
 .ruff_cache/
-.agents/
-data/
+.mypy_cache/
 
-# Logs temporaires d'exécution des agents
-benchmarks/results/*.log
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated data
+data/
 load_out.txt
 load_err.txt
+benchmarks/results/*.log
 benchmarks/results/benchmarks.json
+
+# Temporary files
+.agents/
+*.tmp
