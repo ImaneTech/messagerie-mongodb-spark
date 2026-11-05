@@ -16,9 +16,11 @@ param(
 )
 
 if (-not $env:MONGO_URI) {
-    Write-Error "MONGO_URI n'est pas défini. Définissez-le avec :"
-    Write-Error '  $env:MONGO_URI = (python -c "import sys; sys.path.insert(0, ''c:\Users\EMMA\messagerie-mongodb-spark''); from config.settings import MONGO_URI; print(MONGO_URI)")'
-    exit 1
+    $env:MONGO_URI = python -c "import sys; sys.path.insert(0, '..'); from config.settings import MONGO_URI; print(MONGO_URI)"
+    if (-not $env:MONGO_URI) {
+        Write-Error "Impossible de lire MONGO_URI depuis config.settings"
+        exit 1
+    }
 }
 
 $cmd = "docker exec -e MONGO_URI=`"$env:MONGO_URI`" spark-master /opt/spark/bin/spark-submit " +
