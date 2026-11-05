@@ -27,7 +27,7 @@ Plateforme de données d'une application de messagerie (10 000 utilisateurs, con
 
 Chaîne de traitement : **générateur Python/Faker → MongoDB → PySpark → collections `stats_...` de MongoDB → Streamlit**.
 
-Versions : MongoDB `<version>`, Spark `apache/spark:3.5.3-python3`, connecteur `mongo-spark-connector_2.12:<version>`, Python `<version>`.
+Versions : MongoDB 7, Spark `apache/spark:3.5.3-python3`, connecteur `mongo-spark-connector_2.12:10.3.0`, Python 3.14.
 
 Choix de déploiement :
 - Le master et les workers Spark restent sur la machine A : les clusters multi-PC sous Windows posent problème avec le réseau WSL2 (NAT).
@@ -180,7 +180,7 @@ docker exec -it spark-master /opt/spark/bin/spark-submit \
   /apps/<job>.py
 ```
 
-Suivi : master `http://<ip-machine-A>:8080`, application en cours `http://<ip-machine-A>:4040`.
+Suivi : master Spark `http://<ip-machine-A>:18080`, application en cours `http://<ip-machine-A>:4040`.
 
 Squelette d'un job :
 
@@ -230,7 +230,7 @@ Les temps moyens des 30 requêtes sont dans `benchmarks/results/`. `<tableau ou 
 ## 9. Tableau de bord
 
 ```bash
-streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
+python -m streamlit run dashboard/app.py
 ```
 
 Ouvrir `http://<ip-machine-A>:8501`.
@@ -251,7 +251,7 @@ Il lit les collections `stats_...` écrites par Spark et affiche au moins 3 grap
 | `Address already in use` / port refusé sous Windows | port dans une plage exclue par Windows | `netsh interface ipv4 show excludedportrange protocol=tcp`, choisir un autre port |
 | `mongo3` n'apparaît pas dans `rs.status()` | pare-feu ou IP incorrecte | ouvrir le port 27017, vérifier `.env` et `Test-NetConnection` |
 | `All masters are unresponsive` | IP du master changée ou port 7077 fermé | IP fixe, vérifier le pare-feu |
-| `Initial job has not accepted any resources` | workers absents ou ressources demandées trop grandes | vérifier le port 8080, réduire `--executor-memory` et `--total-executor-cores` |
+| `Initial job has not accepted any resources` | workers absents ou ressources demandées trop grandes | vérifier le port 18080, réduire `--executor-memory` et `--total-executor-cores` |
 | `NoSuchMethodError` / `ClassNotFound` | connecteur en `_2.13` avec Spark Scala 2.12 | utiliser `mongo-spark-connector_2.12` |
 | Erreur Ivy (`.ivy2 ... FileNotFound`) | cache non accessible en écriture | ajouter `--conf spark.jars.ivy=/tmp/.ivy2` |
 | Le cluster perd ses nœuds | Wi-Fi, adresse IP changée | Ethernet ou IP réservées dans le routeur |
@@ -260,7 +260,7 @@ Il lit les collections `stats_...` écrites par Spark et affiche au moins 3 grap
 
 - [ ] Les deux machines répondent au ping et gardent leur adresse IP.
 - [ ] `rs.status()` : 1 PRIMARY et 2 SECONDARY.
-- [ ] Interface 8080 : 2 workers `ALIVE`.
+- [ ] Interface 18080 : 2 workers `ALIVE`.
 - [ ] Les données sont chargées et un script PySpark s'exécute sur le cluster.
 - [ ] Le test de panne (`docker stop mongo1`) a été essayé et le temps d'élection noté.
 - [ ] Le tableau de bord affiche au moins 3 graphiques.
