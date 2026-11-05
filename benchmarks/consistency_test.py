@@ -117,7 +117,14 @@ def calc_stats(times, n_runs=None):
 def main():
     client = MongoClient(MONGO_URI)
     db = client[MONGO_DB]
+    
     members_up = get_members_up()
+    if members_up != 3:
+        client.close()
+        raise SystemExit(
+            f"Erreur : 3 membres sont nécessaires, mais seulement {members_up} sont disponibles."
+        )
+        
     conv_id = get_heavy_conv(db)
     print(f"members_up={members_up}, conv_id={conv_id}")
 
@@ -137,6 +144,13 @@ def main():
     rows.append({"test_id": "T1", "setting": "w=majority", **s, "members_up": members_up})
     print(f"  w=majority: avg={s['avg_ms']}ms")
 
+    # T1 write concern w=3
+    print("T1 write concern w=3 (50 runs)...")
+    t1_w3 = bench_t1_write_concern(db, conv_id, 3, runs=50)
+    s = calc_stats(t1_w3)
+    rows.append({"test_id": "T1", "setting": "w=3", **s, "members_up": members_up})
+    print(f"  w=3: avg={s['avg_ms']}ms")
+
     # T2 write concern w=1
     print("T2 write concern w=1 (5 runs, 10000 docs)...")
     t2_w1 = bench_t2_write_concern(db, conv_id, 1, runs=5)
@@ -150,6 +164,13 @@ def main():
     s = calc_stats(t2_wmaj)
     rows.append({"test_id": "T2", "setting": "w=majority", **s, "members_up": members_up})
     print(f"  w=majority: avg={s['avg_ms']}ms")
+
+    # T2 write concern w=3
+    print("T2 write concern w=3 (5 runs, 10000 docs)...")
+    t2_w3 = bench_t2_write_concern(db, conv_id, 3, runs=5)
+    s = calc_stats(t2_w3)
+    rows.append({"test_id": "T2", "setting": "w=3", **s, "members_up": members_up})
+    print(f"  w=3: avg={s['avg_ms']}ms")
 
     # T4 read concern local
     print("T4 read concern local (30 runs)...")
@@ -182,8 +203,25 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
 
+    # Calculer les ratios depuis les médianes
+    t1_w1_median = next(r["median_ms"] for r in rows if r["test_id"] == "T1" and r["setting"] == "w=1")
+    t1_wmaj_median = next(r["median_ms"] for r in rows if r["test_id"] == "T1" and r["setting"] == "w=majority")
+    t1_w3_median = next(r["median_ms"] for r in rows if r["test_id"] == "T1" and r["setting"] == "w=3")
+    t2_w1_median = next(r["median_ms"] for r in rows if r["test_id"] == "T2" and r["setting"] == "w=1")
+    t2_wmaj_median = next(r["median_ms"] for r in rows if r["test_id"] == "T2" and r["setting"] == "w=majority")
+    t2_w3_median = next(r["median_ms"] for r in rows if r["test_id"] == "T2" and r["setting"] == "w=3")
+    t4_local_median = next(r["median_ms"] for r in rows if r["test_id"] == "T4" and r["setting"] == "readConcern=local")
+    t4_maj_median = next(r["median_ms"] for r in rows if r["test_id"] == "T4" and r["setting"] == "readConcern=majority")
+
+    print(f"\nRatios (basés sur médianes):")
+    print(f"  T1 w=majority/w=1: {t1_wmaj_median / t1_w1_median:.2f}x")
+    print(f"  T1 w=3/w=1: {t1_w3_median / t1_w1_median:.2f}x")
+    print(f"  T2 w=majority/w=1: {t2_wmaj_median / t2_w1_median:.2f}x")
+    print(f"  T2 w=3/w=1: {t2_w3_median / t2_w1_median:.2f}x")
+    print(f"  T4 majority/local: {t4_maj_median / t4_local_median:.2f}x")
+
     print(f"\nRésultats écrits dans {out_path}")
-    print("IMPORTANT : résultats à relancer quand mongo3 (machine B) sera disponible.")
+    print("Benchmark terminé : replica set à 3 membres.")
     client.close()
 
 
