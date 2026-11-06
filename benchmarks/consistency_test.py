@@ -213,7 +213,7 @@ def main():
     t4_local_median = next(r["median_ms"] for r in rows if r["test_id"] == "T4" and r["setting"] == "readConcern=local")
     t4_maj_median = next(r["median_ms"] for r in rows if r["test_id"] == "T4" and r["setting"] == "readConcern=majority")
 
-    print(f"\nRatios (basés sur médianes):")
+    print("\nRatios (basés sur médianes):")
     print(f"  T1 w=majority/w=1: {t1_wmaj_median / t1_w1_median:.2f}x")
     print(f"  T1 w=3/w=1: {t1_w3_median / t1_w1_median:.2f}x")
     print(f"  T2 w=majority/w=1: {t2_wmaj_median / t2_w1_median:.2f}x")
