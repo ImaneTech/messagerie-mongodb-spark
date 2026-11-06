@@ -34,3 +34,5 @@ benchmarks/results/benchmarks.json
 # Temporary files
 .agents/
 *.tmp
+*.log
+nul
