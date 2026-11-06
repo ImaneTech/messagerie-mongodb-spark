@@ -22,8 +22,6 @@ def get_query(conversation_id=None, limit=50):
         ]
         top = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
         conversation_id = top[0]["_id"] if top else None
-        if top:
-            print(f"CONV_CHOISIE={conversation_id} NB_MESSAGES={top[0]['count']}")
 
     cursor = (
         messages.find({"conversation_id": conversation_id, "deleted": False})
