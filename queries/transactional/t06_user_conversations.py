@@ -24,8 +24,6 @@ def get_query(user_id=None, limit=20):
         ]
         top = list(db[COLLECTIONS["conversations"]].aggregate(pipeline))
         user_id = top[0]["_id"] if top else None
-        if top:
-            print(f"USER_CHOISI={user_id} NB_CONVERSATIONS={top[0]['count']}")
 
     cursor = (
         conversations.find({"participants.user_id": user_id})
