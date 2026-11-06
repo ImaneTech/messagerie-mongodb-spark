@@ -1,10 +1,13 @@
 import argparse
 import time
 
-from data_generator.generate_data import (generate_conversations,
-                                          generate_messages,
-                                          generate_read_status,
-                                          generate_reports, generate_users)
+from data_generator.generate_data import (
+    generate_conversations,
+    generate_messages,
+    generate_read_status,
+    generate_reports,
+    generate_users,
+)
 from queries.utils import get_db
 from schema.create_indexes import create_indexes
 
