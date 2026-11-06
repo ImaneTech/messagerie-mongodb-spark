@@ -3,5 +3,5 @@
   "totalKeysExamined": 0,
   "totalDocsExamined": 8000,
   "nReturned": 10,
-  "executionTimeMillis": 8
+  "executionTimeMillis": 6
 }

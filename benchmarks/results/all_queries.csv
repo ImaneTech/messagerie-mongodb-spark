@@ -1,30 +1,30 @@
 query_id,family,description,engine,avg_ms,min_ms,max_ms,runs
-T01,transactional,Envoyer un message,mongodb,32.50,24.71,47.70,3
-T02,transactional,Import en masse de messages,mongodb,557.85,479.38,674.29,3
-T03,transactional,Consulter profil utilisateur,mongodb,10.72,10.21,11.72,3
-T04,transactional,50 derniers messages d'une conversation,mongodb,123.87,102.28,166.66,3
-T05,transactional,Pagination précédente,mongodb,51.39,50.09,53.35,3
-T06,transactional,Lister conversations utilisateur,mongodb,32.64,30.87,34.48,3
-T07,transactional,Créer un groupe,mongodb,18.06,16.35,20.61,3
-T08,transactional,Ajouter/retirer participant,mongodb,19.42,18.69,20.06,3
-T09,transactional,Modifier un message,mongodb,34.00,25.22,50.63,3
-T10,transactional,Suppression douce,mongodb,33.70,30.86,35.15,3
-T11,transactional,Ajouter une réaction,mongodb,21.99,19.40,25.13,3
-T12,transactional,Marquer conversation comme lue,mongodb,23.25,20.35,28.72,3
-T13,transactional,Compter messages non lus,mongodb,63.13,59.46,67.41,3
-T14,transactional,Messages éphémères TTL,mongodb,19.25,17.48,22.73,3
-T15,transactional,Signaler un message,mongodb,107.52,44.30,183.61,3
-A16,analytical,Messages par jour,mongodb,80.36,76.65,85.82,3
-A17,analytical,Top utilisateurs actifs,mongodb,107.42,102.22,110.04,3
-A18,analytical,Répartition par type,mongodb,86.17,82.77,91.71,3
-A19,analytical,Taille moyenne pièces jointes,mongodb,137.47,113.85,171.09,3
-A20,analytical,Groupes de plus de 50,mongodb,11.79,10.86,12.58,3
-A21,analytical,Utilisateurs inactifs 30j,mongodb,23.84,22.82,24.85,3
-A22,analytical,Messages par heure,mongodb,132.85,124.97,140.15,3
-A23,analytical,Top emojis,mongodb,105.28,94.93,122.51,3
-A24,analytical,Signalements par motif/statut,mongodb,11.61,10.43,12.48,3
-A25,analytical,Conversations inactives 7j,mongodb,37.09,28.20,51.14,3
-S26,spark,Temps de réponse moyen conversations privées (Window/lag),spark,6538,6538,6538,1
+T01,transactional,Envoyer un message,mongodb,69.84,64.44,73.07,3
+T02,transactional,Import en masse de messages,mongodb,847.99,467.10,1108.09,3
+T03,transactional,Consulter profil utilisateur,mongodb,11.20,9.54,12.84,3
+T04,transactional,50 derniers messages d'une conversation,mongodb,97.81,94.26,102.28,3
+T05,transactional,Pagination precedente,mongodb,44.43,30.98,56.69,3
+T06,transactional,Lister conversations utilisateur,mongodb,35.55,33.39,38.77,3
+T07,transactional,Creer un groupe,mongodb,19.77,19.64,19.83,3
+T08,transactional,Ajouter/retirer participant,mongodb,23.94,21.95,25.48,3
+T09,transactional,Modifier un message,mongodb,40.54,32.10,53.80,3
+T10,transactional,Suppression douce,mongodb,24.54,24.02,25.29,3
+T11,transactional,Ajouter une reaction,mongodb,27.55,26.46,28.40,3
+T12,transactional,Marquer conversation comme lue,mongodb,25.13,23.50,26.73,3
+T13,transactional,Compter messages non lus,mongodb,50.29,49.82,51.17,3
+T14,transactional,Messages ephemeres TTL,mongodb,24.75,21.31,26.53,3
+T15,transactional,Signaler un message,mongodb,26.64,24.15,29.21,3
+A16,analytical,Messages par jour,mongodb,108.96,99.48,122.04,3
+A17,analytical,Top utilisateurs actifs,mongodb,126.83,114.32,143.47,3
+A18,analytical,Repartition par type,mongodb,200.51,133.40,276.73,3
+A19,analytical,Taille moyenne pieces jointes,mongodb,185.04,154.76,232.67,3
+A20,analytical,Groupes de plus de 50,mongodb,14.24,13.42,15.49,3
+A21,analytical,Utilisateurs inactifs 30j,mongodb,25.79,22.99,27.26,3
+A22,analytical,Messages par heure,mongodb,157.05,147.36,176.32,3
+A23,analytical,Top emojis,mongodb,120.52,113.89,132.18,3
+A24,analytical,Signalements par motif/statut,mongodb,16.33,15.37,17.37,3
+A25,analytical,Conversations inactives 7j,mongodb,37.24,30.26,48.90,3
+S26,spark,Temps de réponse moyen conversations privées (Window/lag),spark,19156,9058,37708,3
 S27,spark,Contacts communs entre paires d'utilisateurs top 20 (explode+self-join),spark,15596,15596,15596,1
 S28,spark,Détection spam: même contenu >20 conversations/heure (sliding window),spark,1746,1746,1746,1
 S29,spark,Taux de signalement par expéditeur top 20 (sent>=20),spark,5793,5793,5793,1
