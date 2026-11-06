@@ -4,24 +4,35 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from config.settings import COLLECTIONS
-from queries.analytical import (a16_messages_per_day, a17_top_active_users,
-                                a18_messages_by_type,
-                                a19_avg_attachment_size_by_mime,
-                                a20_groups_over_50, a21_inactive_users_30d,
-                                a22_messages_per_hour, a23_top_emoji,
-                                a24_reports_by_reason_status,
-                                a25_conversations_idle_7d)
-from queries.transactional import (t01_send_message, t02_bulk_import_messages,
-                                   t03_user_profile, t04_last_50_messages,
-                                   t05_previous_page, t06_user_conversations,
-                                   t07_create_group,
-                                   t08_add_remove_participant,
-                                   t09_edit_message, t10_soft_delete_message,
-                                   t11_add_reaction,
-                                   t12_mark_conversation_read,
-                                   t13_unread_count,
-                                   t14_ephemeral_messages_ttl,
-                                   t15_report_message)
+from queries.analytical import (
+    a16_messages_per_day,
+    a17_top_active_users,
+    a18_messages_by_type,
+    a19_avg_attachment_size_by_mime,
+    a20_groups_over_50,
+    a21_inactive_users_30d,
+    a22_messages_per_hour,
+    a23_top_emoji,
+    a24_reports_by_reason_status,
+    a25_conversations_idle_7d,
+)
+from queries.transactional import (
+    t01_send_message,
+    t02_bulk_import_messages,
+    t03_user_profile,
+    t04_last_50_messages,
+    t05_previous_page,
+    t06_user_conversations,
+    t07_create_group,
+    t08_add_remove_participant,
+    t09_edit_message,
+    t10_soft_delete_message,
+    t11_add_reaction,
+    t12_mark_conversation_read,
+    t13_unread_count,
+    t14_ephemeral_messages_ttl,
+    t15_report_message,
+)
 from queries.utils import get_db, save_query_results, timed
 
 results = []
