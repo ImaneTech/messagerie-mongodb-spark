@@ -1,3 +1,5 @@
+"""Analyse de rétention des utilisateurs par cohorte mensuelle d'inscription."""
+
 import os
 import time
 

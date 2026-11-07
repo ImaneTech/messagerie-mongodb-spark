@@ -1,3 +1,5 @@
+"""Calcul du ratio de messages signalés par utilisateur pour la modération."""
+
 import os
 import time
 
@@ -6,6 +8,7 @@ from pyspark.sql import functions as F
 
 MONGO_URI = os.environ["MONGO_URI"]
 
+# Initialisation de la session Spark
 spark = (
     SparkSession.builder.appName("S29_ReportRateBySender")
     .config("spark.mongodb.read.connection.uri", MONGO_URI)
@@ -15,24 +18,24 @@ spark = (
     .getOrCreate()
 )
 
-# Lire messages
+# 1. Chargement de la collection messages
 msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
 msgs_df = msgs_df.select(F.col("_id").alias("message_id"), "sender_id")
 
-# Lire reports
+# 2. Chargement de la collection reports
 reports_df = spark.read.format("mongodb").option("collection", "reports").load()
 reports_df = reports_df.select("message_id").withColumnRenamed("message_id", "rep_message_id")
 
-# Count messages envoyés par sender
+# 3. Calcul du nombre de messages envoyés par émetteur
 sent_count = msgs_df.groupBy("sender_id").agg(F.count("message_id").alias("sent_count"))
 
-# Join messages avec reports pour trouver les messages signalés
+# 4. Jointure avec reports pour isoler les messages ayant fait l'objet d'un signalement
 reported_msgs = msgs_df.join(reports_df, msgs_df.message_id == reports_df.rep_message_id, "inner")
 reported_count = reported_msgs.groupBy("sender_id").agg(
     F.count("message_id").alias("reported_count")
 )
 
-# Join sent_count avec reported_count
+# 5. Jointure globale, imputation des zéros, calcul du ratio et filtre seuil
 result = (
     sent_count.join(reported_count, "sender_id", "left")
     .fillna(0, subset=["reported_count"])
@@ -44,6 +47,7 @@ result = (
 
 result.show()
 
+# 6. Sauvegarde des résultats d'audit dans stats_s29
 start_write = time.time()
 result.write.format("mongodb").option("collection", "stats_s29").mode("overwrite").save()
 duration_ms = (time.time() - start_write) * 1000

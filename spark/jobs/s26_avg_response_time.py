@@ -1,3 +1,5 @@
+"""Calcul du temps de réponse moyen en conversation privée avec fonction de fenêtrage (lag)."""
+
 import os
 import time
 

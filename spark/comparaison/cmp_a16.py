@@ -1,3 +1,5 @@
+"""Version Spark de A16 pour comparaison de performances avec MongoDB natif."""
+
 import os
 import time
 from datetime import datetime, timedelta, timezone
@@ -8,7 +10,7 @@ from pyspark.sql import functions as F
 # URI injectée par docker exec -e MONGO_URI
 MONGO_URI = os.environ["MONGO_URI"]
 
-# --- Session Spark ---
+# --- Initialisation de la Session Spark ---
 t_session_start = time.time()
 spark = (
     SparkSession.builder.appName("CMP_A16_MessagesPerDay")
@@ -24,7 +26,7 @@ print(f"SPARK_SESSION_MS={t_session_ms:.0f}")
 now = datetime.now(timezone.utc).replace(tzinfo=None)
 start_30d = now - timedelta(days=30)
 
-# --- 3 runs Spark ---
+# --- Exécution de 3 runs Spark pour calcul de moyenne ---
 spark_times = []
 spark_rows = None
 result_df = None
@@ -51,7 +53,7 @@ print("SAME_RESULT=SPARK_ONLY")
 
 result_df.show(35, truncate=False)
 
-# --- Écriture résultat ---
+# --- Écriture résultat dans MongoDB ---
 t0 = time.time()
 result_df.write.format("mongodb").option("collection", "stats_cmp_a16").mode("overwrite").save()
 write_ms = (time.time() - t0) * 1000
