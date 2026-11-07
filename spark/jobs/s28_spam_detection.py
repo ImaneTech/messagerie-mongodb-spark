@@ -1,3 +1,5 @@
+"""Détection de campagnes de spam via fenêtrage temporel glissant (sliding window)."""
+
 import os
 import time
 
