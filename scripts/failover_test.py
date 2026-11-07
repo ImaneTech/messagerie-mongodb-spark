@@ -1,4 +1,18 @@
-"""Test de bascule du primaire : arrêt de mongo1, élection, écriture, retour."""
+"""
+Script : scripts.failover_test
+Projet : Messagerie Distribuée Haute Performance (MongoDB & Apache Spark)
+
+Rôle du fichier :
+Test automatisé de haute disponibilité et de bascule (Failover) du Replica Set MongoDB (`rs0`).
+Protocole expérimental :
+1. Vérification que `mongo1` est le Primaire initial.
+2. Déclenchement de la panne du Primaire (`docker stop mongo1` ou `docker pause mongo1`).
+3. Chronométrage de la phase d'élection du nouveau Primaire (`wait_for(primary)`).
+4. Validation de la résilience d'écriture avec accusé de réception majoritaire (`w=majority`).
+5. Redémarrage de `mongo1` et mesure du temps de réintégration comme Secondaire.
+6. Enregistrement des mesures de bascule dans `benchmarks/results/failover_test.csv`.
+"""
+
 import argparse
 import csv
 import subprocess
