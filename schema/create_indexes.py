@@ -1,3 +1,5 @@
+"""Création idempotente des index B-Tree, uniques et TTL sur MongoDB."""
+
 from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
 
@@ -5,6 +7,7 @@ from config.settings import MONGO_DB, MONGO_URI
 
 
 def create_indexes():
+    """Crée tous les index requis sur les 5 collections de chatdb."""
     try:
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command("ping")
@@ -69,6 +72,7 @@ def create_indexes():
             current_indexes = [idx["name"] for idx in coll.list_indexes()]
             print(f"Collection '{coll_name}': {current_indexes}")
 
+        client.close()
         return True
 
     except (ServerSelectionTimeoutError, PyMongoError) as e:
