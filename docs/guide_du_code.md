@@ -1,39 +1,110 @@
-# Guide du code
+# Guide Technique & Architecture du Code
 
-Ce document décrit la structure du projet et les points d'entrée pour chaque dossier.
+Ce document détaille l'organisation de l'espace de travail, le rôle technique de chaque répertoire et fichier, ainsi que le guide d'exécution pour la validation du projet.
 
-## Structure par dossier
+---
 
-### config/
-Contient la configuration centralisée. Commencer par `settings.py` pour comprendre les connexions MongoDB.
+## 1. Arborescence du Projet
 
-### data_generator/
-Génération et chargement des données synthétiques. Ouvrir `generate_data.py` pour voir la logique de génération des utilisateurs, conversations et messages avec les cas particuliers (spam, réponses rapides, etc.). Ouvrir `load_data.py` pour le chargement en base.
+```text
+messagerie-mongodb-spark/
+│
+├── config/                  # Configuration centralisée et variables d'environnement
+│   ├── __init__.py
+│   └── settings.py          # URI Replica Set (rs0), IPs machines A/B, noms des collections
+│
+├── data_generator/          # Outils de génération et peuplement du dataset
+│   ├── __init__.py
+│   ├── generate_data.py     # Algorithmes de création (users, convs, messages, reports, statuts)
+│   ├── load_data.py         # Ingestion par lots (batching) et indexation automatique
+│   └── check_data.py        # Vérifications de cohérence volumétrique et temporelle
+│
+├── schema/                  # Modélisation et définitions des index
+│   ├── __init__.py
+│   ├── create_indexes.py    # Déclaration idempotente des index B-Tree, uniques et TTL
+│   └── schema_design.md     # Spécification détaillée des schémas JSON et choix NoSQL
+│
+├── queries/                 # Implémentation des requêtes de messagerie
+│   ├── __init__.py
+│   ├── utils.py             # Gestionnaire de connexion, décorateur timed, helpers
+│   ├── transactional/       # 15 requêtes CRUD et opérationnelles (T01 à T15)
+│   └── analytical/          # 10 pipelines d'agrégation décisionnels (A16 à A25)
+│
+├── spark/                   # Traitements Big Data distribués (PySpark)
+│   ├── __init__.py
+│   ├── jobs/                # 5 analyses complexes (S26 à S30)
+│   │   ├── s26_avg_response_time.py   # Temps de réponse (Window lag)
+│   │   ├── s27_common_contacts.py     # Graphe social & contacts communs (self-join)
+│   │   ├── s28_spam_detection.py      # Détection d'attaques de spam (fenêtre 1h)
+│   │   ├── s29_report_rate_by_sender.py # Taux de signalement par utilisateur
+│   │   └── s30_retention_cohorts.py   # Rétention mensuelle par cohortes
+│   └── comparaison/         # Benchmarks comparatifs natif vs Spark
+│       ├── cmp_a16.py       # Messages par jour (30j)
+│       ├── cmp_a17.py       # Top 10 utilisateurs actifs
+│       └── cmp_a18.py       # Répartition par type de message
+│
+├── benchmarks/              # Bancs de mesure de performance et résilience
+│   ├── __init__.py
+│   ├── run_all.py           # Orchestrateur global de benchmark
+│   ├── run_native_queries.py # Mesures statistiques sur les 25 requêtes natives
+│   ├── index_test.py        # Évaluation IXSCAN vs COLLSCAN avec export JSON explain
+│   ├── consistency_test.py  # Tests Write Concern (w=1 vs majority) et Read Concern
+│   ├── merge_native_spark.py # Fusion et comparaison des métriques Spark / MongoDB
+│   └── results/             # Résultats certifiés au format CSV et plans JSON
+│
+├── dashboard/               # Interface d'observabilité exécutive
+│   └── app.py               # Tableau de bord Streamlit (Clean Light Corporate Theme)
+│
+├── scripts/                 # Scripts d'infrastructure et de résilience
+│   └── failover_test.py     # Mesure de bascule et élection en cas de panne du Primaire
+│
+├── figures/                 # Schémas d'architecture et graphiques haute résolution
+│   ├── architecture_systeme.png # Topologie physique multi-machines et cluster
+│   ├── modele.png               # Diagramme des entités et relations NoSQL
+│   ├── pipeline_donnees.png     # Flux des données opérationnelles et analytiques
+│   ├── bascule.png              # Chronologie de l'élection de haute disponibilité
+│   ├── dashboard.png            # Vue de synthèse compacte du tableau de bord
+│   ├── index_test.png / .pdf    # Histogrammes de gain d'accélération d'index
+│   └── native_vs_spark.png/.pdf # Comparatif de latence d'exécution
+│
+├── report/                  # Documentation académique et livrables finaux
+│   └── rapport_technique.md # Rapport d'ingénierie complet et résultats expérimentaux
+│
+├── generate_all_figures.py  # Générateur des diagrammes de synthèse
+└── generate_report_plots.py # Script matplotlib générant les figures PDF/PNG
+```
 
-### schema/
-Définition du schéma et des index. Commencer par `schema_design.md` pour la documentation complète, puis `create_indexes.py` pour la création des index.
+---
 
-### queries/
-Implémentation des 30 requêtes (15 transactionnelles T01-T15 dans `transactional/`, 10 analytiques A16-A25 dans `analytical/`). Chaque fichier contient une fonction `run()` qui exécute la requête.
+## 2. Guide d'Exécution & Commandes Clés
 
-### spark/jobs/
-Jobs PySpark S26-S30 pour les analyses distribuées. Ouvrir `spark_session.py` pour comprendre la configuration Spark, puis chaque job individuel.
+### A. Génération & Ingestion des Données
+```bash
+# Générer 10 000 utilisateurs, 8 000 conversations et ~85 000 messages
+python -m data_generator.load_data
 
-### benchmarks/
-Scripts de test et benchmark. Ouvrir `run_all.py` pour lancer tous les tests, `run_native_queries.py` pour les requêtes natives, `index_test.py` pour les tests d'index, `consistency_test.py` pour les tests de cohérence du replica set.
+# Vérifier l'intégrité des données
+python -m data_generator.check_data
+```
 
-### dashboard/
-Application Streamlit. Ouvrir `app.py` pour voir le code du tableau de bord.
+### B. Lancement des Benchmarks
+```bash
+# Exécuter les requêtes natives, les tests d'index et de cohérence
+python benchmarks/run_all.py
 
-## Questions possibles
+# Exécuter avec les jobs analytiques Spark (si cluster actif)
+python benchmarks/run_all.py --with-spark
+```
 
-1. Où est définie l'URI MongoDB ? Réponse : `config/settings.py`, variable `MONGO_URI`
-2. Comment générer les données de test ? Réponse : `python -m data_generator.load_data`
-3. Quels index existent sur la collection messages ? Réponse : `schema/create_indexes.py` ou `schema/schema_design.md`
-4. Comment exécuter une requête transactionnelle ? Réponse : importer le module depuis `queries/transactional/` et appeler `run()`
-5. Où est la logique de détection de spam ? Réponse : `spark/jobs/s28_spam_detection.py`
-6. Comment lancer tous les benchmarks ? Réponse : `python benchmarks/run_all.py --with-spark`
-7. Où trouver les résultats des tests ? Réponse : `benchmarks/results/*.csv`
-8. Comment accéder au tableau de bord ? Réponse : `python -m streamlit run dashboard/app.py`
-9. Quel est le seuil pour détecter le spam ? Réponse : 20 conversations distinctes en 1 heure, voir `spark/jobs/s28_spam_detection.py` ligne 30
-10. Comment fonctionne le TTL des messages éphémères ? Réponse : Index TTL sur `expire_at` avec `expireAfterSeconds=0`, voir `schema/create_indexes.py` lignes 26-30
+### C. Test de Haute Disponibilité (Failover)
+```bash
+# Simuler l'arrêt brutal du Primaire et chronométrer l'élection
+python scripts/failover_test.py --mode stop
+```
+
+### D. Consultation du Tableau de Bord
+```bash
+# Démarrer le dashboard Streamlit
+streamlit run dashboard/app.py
+```
+*(Le tableau de bord bascule automatiquement sur les données certifiées en cache CSV si la base de données n'est pas connectée).*
