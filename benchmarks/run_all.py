@@ -1,6 +1,5 @@
-# benchmarks/run_all.py
-# Lance (a) requêtes natives, (b) index test, (c) consistency test.
-# Avec --with-spark : lance aussi les 5 jobs Spark.
+"""Script principal pour exécuter l'ensemble des benchmarks (natif, index, cohérence, spark)."""
+
 import argparse
 import csv
 import os

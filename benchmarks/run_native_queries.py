@@ -1,3 +1,5 @@
+"""Exécution et mesure des performances des 25 requêtes natives MongoDB (T01-T15, A16-A25)."""
+
 import os
 import sys
 

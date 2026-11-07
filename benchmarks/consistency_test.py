@@ -1,5 +1,18 @@
-# benchmarks/consistency_test.py
-# Test de cohérence : write concern T1/T2, read concern T4.
+"""
+Module : benchmarks.consistency_test
+Projet : Messagerie Distribuée Haute Performance (MongoDB & Apache Spark)
+
+Rôle du fichier :
+Benchmark des niveaux de garantie de réplication et de cohérence distribuée (CAP Theorem / PACELC) :
+1. Niveaux de Write Concern sur écriture unitaire T01 et import par lot T02 :
+   - `w=1`        : Accusé de réception dès écriture sur le nœud Primaire (faible latence, risque de rollback).
+   - `w=majority` : Accusé de réception après réplication sur la majorité des nœuds (2/3 du Replica Set).
+2. Niveaux de Read Concern sur lecture T04 :
+   - `local`    : Données lues localement sur le nœud sollicité.
+   - `majority` : Lecture exclusive des données confirmées par quorum, protégeant contre la lecture sale (dirty read).
+3. Sauvegarde des mesures comparatives (temps moyen, min, max, p95) dans `benchmarks/results/consistency_test.csv`.
+"""
+
 import csv
 import os
 import statistics

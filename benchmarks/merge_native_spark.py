@@ -1,11 +1,15 @@
 """
-merge_native_spark.py
-Compare les résultats natifs (MongoDB PyMongo) et Spark pour A16, A17, A18.
-Lit queries_native.csv pour les timings natifs.
-Lit les collections stats_cmp_a16/17/18 pour les résultats Spark.
-Relit spark_jobs.csv pour les timings Spark cmp (colonnes avg_ms lignes cmp_a16 etc.).
-Les jobs de comparaison sont dans spark/comparaison/.
-Écrit native_vs_spark.csv : query_id, native_avg_ms, spark_avg_ms, spark_session_ms, same_result.
+Module : benchmarks.merge_native_spark
+Projet : Messagerie Distribuée Haute Performance (MongoDB & Apache Spark)
+
+Rôle du fichier :
+Fusion et comparaison formelle des résultats entre MongoDB natif (PyMongo) et Apache Spark :
+- Porte sur les trois requêtes d'agrégation communes : A16 (activité par jour), A17 (top utilisateurs) et A18 (répartition par type).
+- Récupère les temps d'exécution natifs depuis `queries_native.csv`.
+- Récupère les durées de calcul Spark et d'initialisation de session (`spark_session_ms`).
+- Valide l'équivalence exacte des résultats (`same_result = True/False`) en interrogeant
+  les collections de sortie Spark (`stats_cmp_a16`, `stats_cmp_a17`, `stats_cmp_a18`).
+- Génère le fichier de synthèse `benchmarks/results/native_vs_spark.csv`.
 """
 
 import csv
