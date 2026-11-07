@@ -1,3 +1,5 @@
+"""Chargement par lots des données synthétiques dans MongoDB et création des index."""
+
 import argparse
 import time
 

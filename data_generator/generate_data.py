@@ -1,3 +1,5 @@
+"""Génération du jeu de données de test (utilisateurs, conversations, messages, statuts, reports)."""
+
 import random
 import uuid
 from datetime import datetime, timedelta, timezone

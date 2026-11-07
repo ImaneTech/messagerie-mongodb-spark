@@ -1,3 +1,5 @@
+"""Vérification de la cohérence et de la volumétrie des données dans MongoDB."""
+
 import os
 import sys
 
