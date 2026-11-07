@@ -1,5 +1,5 @@
-# benchmarks/index_test.py
-# Test d'index pour T4, T5, T6 : timing (30 runs) + explain plans (JSON)
+"""Test de performance avec et sans index (IXSCAN vs COLLSCAN) pour T4, T5, T6."""
+
 import csv
 import json
 import os
