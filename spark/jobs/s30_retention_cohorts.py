@@ -1,21 +1,18 @@
 """Analyse de rétention des utilisateurs par cohorte mensuelle d'inscription."""
 
 import os
+import sys
 import time
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-MONGO_URI = os.environ["MONGO_URI"]
+from config.settings import MONGO_DB, MONGO_URI
+from spark.spark_session import get_spark_session
 
-spark = (
-    SparkSession.builder.appName("S30_RetentionCohorts")
-    .config("spark.mongodb.read.connection.uri", MONGO_URI)
-    .config("spark.mongodb.write.connection.uri", MONGO_URI)
-    .config("spark.mongodb.read.database", "chatdb")
-    .config("spark.mongodb.write.database", "chatdb")
-    .getOrCreate()
-)
+spark = get_spark_session("S30_RetentionCohorts")
 
 # Lire users
 users_df = spark.read.format("mongodb").option("collection", "users").load()

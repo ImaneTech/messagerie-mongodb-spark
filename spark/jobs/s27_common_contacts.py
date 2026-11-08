@@ -1,22 +1,18 @@
 """Identification des contacts communs par auto-jointure distribuée (self-join)."""
 
 import os
+import sys
 import time
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-MONGO_URI = os.environ["MONGO_URI"]
+from config.settings import MONGO_DB, MONGO_URI
+from spark.spark_session import get_spark_session
 
-# Initialisation de la session Spark avec le connecteur MongoDB
-spark = (
-    SparkSession.builder.appName("S27_CommonContacts")
-    .config("spark.mongodb.read.connection.uri", MONGO_URI)
-    .config("spark.mongodb.write.connection.uri", MONGO_URI)
-    .config("spark.mongodb.read.database", "chatdb")
-    .config("spark.mongodb.write.database", "chatdb")
-    .getOrCreate()
-)
+spark = get_spark_session("S27_CommonContacts")
 
 # 1. Chargement des utilisateurs (identifiant et liste de contacts)
 users_df = spark.read.format("mongodb").option("collection", "users").load()

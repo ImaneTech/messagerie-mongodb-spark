@@ -1,22 +1,18 @@
 """Calcul du ratio de messages signalés par utilisateur pour la modération."""
 
 import os
+import sys
 import time
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-MONGO_URI = os.environ["MONGO_URI"]
+from config.settings import MONGO_DB, MONGO_URI
+from spark.spark_session import get_spark_session
 
-# Initialisation de la session Spark
-spark = (
-    SparkSession.builder.appName("S29_ReportRateBySender")
-    .config("spark.mongodb.read.connection.uri", MONGO_URI)
-    .config("spark.mongodb.write.connection.uri", MONGO_URI)
-    .config("spark.mongodb.read.database", "chatdb")
-    .config("spark.mongodb.write.database", "chatdb")
-    .getOrCreate()
-)
+spark = get_spark_session("S29_ReportRateBySender")
 
 # 1. Chargement de la collection messages
 msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
