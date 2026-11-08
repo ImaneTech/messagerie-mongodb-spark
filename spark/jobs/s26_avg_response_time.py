@@ -1,24 +1,21 @@
 """Calcul du temps de réponse moyen en conversation privée avec fonction de fenêtrage (lag)."""
 
 import os
+import sys
 import time
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
+from config.settings import MONGO_DB, MONGO_URI
+from spark.spark_session import get_spark_session
+
 MAX_GAP_SECONDS = 3600
 
-MONGO_URI = os.environ["MONGO_URI"]
-
-spark = (
-    SparkSession.builder.appName("S26_AvgResponseTime")
-    .config("spark.mongodb.read.connection.uri", MONGO_URI)
-    .config("spark.mongodb.write.connection.uri", MONGO_URI)
-    .config("spark.mongodb.read.database", "chatdb")
-    .config("spark.mongodb.write.database", "chatdb")
-    .getOrCreate()
-)
+spark = get_spark_session("S26_AvgResponseTime")
 
 # Lire conversations privées
 convs_df = spark.read.format("mongodb").option("collection", "conversations").load()

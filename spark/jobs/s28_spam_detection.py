@@ -1,22 +1,19 @@
 """Détection de campagnes de spam via fenêtrage temporel glissant (sliding window)."""
 
 import os
+import sys
 import time
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-MONGO_URI = os.environ["MONGO_URI"]
+from config.settings import MONGO_DB, MONGO_URI
+from spark.spark_session import get_spark_session
 
-spark = (
-    SparkSession.builder.appName("S28_SpamDetection")
-    .config("spark.mongodb.read.connection.uri", MONGO_URI)
-    .config("spark.mongodb.write.connection.uri", MONGO_URI)
-    .config("spark.mongodb.read.database", "chatdb")
-    .config("spark.mongodb.write.database", "chatdb")
-    .getOrCreate()
-)
+spark = get_spark_session("S28_SpamDetection")
 
 # Lire messages de type text
 msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
