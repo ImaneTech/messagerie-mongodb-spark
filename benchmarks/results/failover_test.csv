@@ -1,3 +1,0 @@
-date,mode,new_primary,election_s,write_after_failover_s,mongo1_reachable_s,mongo1_primary_again_s
-2026-11-04T14:58:05,kill,mongo3,11.42,0.21,1.77,13.16
-2026-11-04T14:58:23,stop,mongo2,3.62,0.3,1.27,12.06
