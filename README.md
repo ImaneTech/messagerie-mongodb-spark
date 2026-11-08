@@ -118,6 +118,8 @@ cd machine-a
 docker compose up -d
 ```
 
+![Docker Compose Machine A — conteneurs démarrés](screenshots/docker_compose_machine_a.png)
+
 ### 5.2 Déploiement Machine B
 
 ```powershell
@@ -141,7 +143,11 @@ docker exec -it mongo1 mongosh --eval "rs.status().members.map(m => [m.name, m.s
 
 Résultat attendu : **1 PRIMARY et 2 SECONDARY**.
 
+![Statut Replica Set](screenshots/replica_set_status.png)
+
 - **Spark Master UI :** `http://<IP_MACHINE_A>:18080` — les 2 workers doivent être `ALIVE`.
+
+![Spark Master UI — 2 workers ALIVE](screenshots/spark_master_ui.png)
 
 ---
 
@@ -164,6 +170,8 @@ python -m data_generator.load_data
 | `messages` | Référence | **105 420** | Référence `conversation_id` & `sender_id`, imbrique `attachment{}` et `reactions[]` |
 | `read_status` | Séparée | **38 450** | Horodatage `last_read_ts` par participant |
 | `reports` | Séparée | **1 420** | Signalements référençant `message_id` |
+
+![MongoDB Compass — collections chatdb et volumes](screenshots/mongodb_compass_collections.png)
 
 ---
 
@@ -263,6 +271,8 @@ docker start mongo1  # réintègre le cluster en tant que SECONDARY
 ```
 
 **Résultat observé :** élection et promotion de `mongo2` en PRIMARY en **2.4 secondes**.
+
+![Terminal — test de bascule failover](screenshots/failover_test_terminal.png)
 
 ![Séquence d'élection failover](screenshots/failover_sequence.png)
 
