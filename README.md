@@ -9,7 +9,7 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 ## Sommaire
 
 1. [Architecture & Infrastructure](#1-architecture--infrastructure)
-2. [Modélisation & Diagrammes du Système](#2-modélisation--diagrammes-du-système)
+2. [Modélisation & Schémas du Système](#2-modélisation--schémas-du-système)
 3. [Structure du Dépôt](#3-structure-du-dépôt)
 4. [Prérequis System](#4-prérequis-system)
 5. [Installation et Lancement](#5-installation-et-lancement)
@@ -19,7 +19,6 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 9. [Benchmarks, Sécurité & Failover](#9-benchmarks-sécurité--failover)
 10. [Tableau de Bord Streamlit](#10-tableau-de-bord-streamlit)
 11. [Guide de Dépannage](#11-guide-de-dépannage)
-12. [Checklist de Démonstration](#12-checklist-de-démonstration)
 
 ---
 
@@ -33,128 +32,37 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 - **Chaîne d'exécution :** Générateur Python (Faker) ➔ MongoDB (`chatdb`) ➔ Connecteur Spark-MongoDB ➔ Pipeline PySpark ➔ Collections `stats_...` ➔ Dashboard Streamlit.
 - **Versions :** MongoDB 7.0, Spark `3.5.3-python3`, Connecteur `mongo-spark-connector_2.12:10.3.0`, Python 3.10+.
 
+### 1.1 Diagramme d'Architecture Globale
+
+![Architecture globale et déploiement Docker](screenshots/arch_deploiement.png)
+
+### 1.2 État des Conteneurs Docker Compose (Machine A)
+
 ![Déploiement Docker Compose](screenshots/deploiment-docker.png)
 
 ---
 
-## 2. Modélisation & Diagrammes du Système
+## 2. Modélisation & Schémas du Système
 
-### 2.1 Topologie du Replica Set MongoDB et flux applicatifs
+### 2.1 Topologie du Replica Set MongoDB et Flux Applicatifs
 
-```mermaid
-graph TD
-    subgraph Machine_A ["Machine A (IP_A)"]
-        CLIENT["Scripts Python / PyMongo / Connecteur Spark"]
-        M1["mongo1 (PRIMARY)\nPriorité: 2 | Port: 27017"]
-        M2["mongo2 (SECONDARY)\nPriorité: 1 | Port: 27018"]
-    end
+![Topologie du Replica Set MongoDB](screenshots/replica_set_topology.png)
 
-    subgraph Machine_B ["Machine B (IP_B)"]
-        M3["mongo3 (SECONDARY)\nPriorité: 1 | Port: 27017"]
-    end
+### 2.2 Modèle de Données NoSQL (Collections & Références ERD)
 
-    CLIENT -->|Écritures / Read: Primary| M1
-    M1 == oplog ==> M2
-    M1 == oplog ==> M3
-    M2 -. Heartbeat (2s) .- M3
-```
-
-### 2.2 Diagramme Réseau des Collections (ERD NoSQL)
-
-```mermaid
-erDiagram
-    USERS ||--o{ MESSAGES : "sender_id (1:N)"
-    CONVERSATIONS ||--o{ MESSAGES : "conversation_id (1:N)"
-    MESSAGES ||--o{ REPORTS : "message_id (1:N)"
-    USERS ||--o{ READ_STATUS : "user_id (1:N)"
-    CONVERSATIONS ||--o{ READ_STATUS : "conversation_id (1:N)"
-
-    USERS {
-        ObjectId _id
-        string pseudo
-        string phone
-        array contacts
-        object settings
-    }
-    CONVERSATIONS {
-        ObjectId _id
-        string type
-        string name
-        array participants
-        date last_message_at
-    }
-    MESSAGES {
-        ObjectId _id
-        ObjectId conversation_id
-        ObjectId sender_id
-        string content
-        object attachment
-        array reactions
-        date ts
-    }
-    READ_STATUS {
-        ObjectId _id
-        ObjectId conversation_id
-        ObjectId user_id
-        date last_read_ts
-    }
-    REPORTS {
-        ObjectId _id
-        ObjectId message_id
-        ObjectId reporter_id
-        string reason
-        string status
-    }
-```
+![Modèle de données NoSQL](screenshots/modele_nosql.png)
 
 ### 2.3 Séquence du Test de Panne et Bascule Automatique (Failover)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as Client PyMongo
-    participant M1 as mongo1 (Primary)
-    participant M2 as mongo2 (Secondary)
-    participant M3 as mongo3 (Secondary)
+![Diagramme de séquence Failover](screenshots/failover_seq.png)
 
-    Client->>M1: Écriture d'un message (writeConcern: majority)
-    M1-->>M2: Synchronisation Oplog
-    M1-->>M3: Synchronisation Oplog
-    M1-->>Client: Confirmation ACK
+### 2.4 Pipeline d'Agrégation Native (Exemple Requête A16)
 
-    Note over M1: Arrêt brutal (docker stop mongo1)
-    M2-xM1: Heartbeats sans réponse
-    M3-xM1: Heartbeats sans réponse
+![Pipeline Agrégation A16](screenshots/pipeline_a16.png)
 
-    Note over M2,M3: Élection du nouveau primaire (Délai < 3s)
-    M2->>M3: Demande de vote
-    M3-->>M2: Vote accordé
-    Note over M2: mongo2 devient PRIMARY
+### 2.5 Chaîne de Transformation PySpark (Exemple Job S26)
 
-    Client->>M2: Écriture reprise automatiquement (writeConcern: majority)
-```
-
-### 2.4 Pipeline d'Agrégation Native (Exemple A16)
-
-```mermaid
-graph LR
-    COLL[(messages)] --> MATCH["$match\nts >= now - 30j"]
-    MATCH --> GROUP["$group\n_id: dateToString(ts)\ntotal: $sum 1"]
-    GROUP --> SORT["$sort\n_id: 1"]
-    SORT --> RES[Résultat Synthèse]
-```
-
-### 2.5 Chaîne de Transformation PySpark (Exemple S26)
-
-```mermaid
-graph TD
-    A["1. Lecture DataFrames (messages + conversations)"] --> B["2. Jointure interne (conversation_id)"]
-    B --> C["3. Fenêtrage Window.partitionBy(conversation_id).orderBy(ts)"]
-    C --> D["4. Calcul de lag() sur l'émetteur et le temps"]
-    D --> E["5. Filtre des réponses (0 < delta_sec <= 3600)"]
-    E --> F["6. Agrégation avg(delta_sec)"]
-    F --> G["7. Écriture dans MongoDB (stats_s26)"]
-```
+![Pipeline PySpark S26](screenshots/spark_s26_pipeline.png)
 
 ---
 
@@ -183,13 +91,25 @@ messagerie-mongodb-spark/
 │   └── analytical/
 ├── schema/                  # Initialisation et création des 13 index BSON
 │   └── create_indexes.py
+├── screenshots/             # Figures et captures d'écran système
+│   ├── arch_deploiement.png
+│   ├── replica_set_topology.png
+│   ├── modele_nosql.png
+│   ├── failover_seq.png
+│   ├── pipeline_a16.png
+│   ├── spark_s26_pipeline.png
+│   ├── deploiment-docker.png
+│   ├── statut-replica.png
+│   ├── mongodb_collections.png
+│   ├── spark.png
+│   ├── spark_s28.png
+│   └── dashboard.png
 ├── scripts/                 # Scripts système (Failover, simulation de crash)
 │   └── failover_test.py
 ├── spark/                   # Jobs PySpark S26-S30 montés dans /opt/spark-jobs
 │   ├── spark_session.py
 │   ├── jobs/
 │   └── comparaison/
-├── screenshots/             # Captures d'écran d'exécution & d'interface
 ├── .env.example             # Modèle de variables d'environnement
 ├── .gitignore
 ├── README.md
@@ -338,7 +258,7 @@ docker exec -it spark-master /opt/spark/bin/spark-submit \
 
 | ID | Job Spark | Algorithme / Transformation DataFrames |
 |---|---|---|
-| **S26** | Temps de réponse moyen | Fenêtrage `Window.partitionBy("conversation_id").orderBy("ts")` et calcul de décalage `lag()` |
+| **S26** | Temps de réponse moyen | Fenêtrage `Window.partitionBy("conversation_id").orderBy("ts")` et calcul `lag()` |
 | **S27** | Contacts communs (Top 20) | `explode()` des listes de contacts suivi d'un Self-Join distribué |
 | **S28** | Détection de spammers | Fenêtre glissante d'1 heure, groupement par expéditeur + texte, filtre `countDistinct(conversation_id) > 20` |
 | **S29** | Taux de messages signalés | Jointure distribuée `messages`/`reports` + agrégation du taux relatif |
@@ -378,10 +298,8 @@ Le mode `w: majority` garantit la non-perte de données en cas de crash au prix 
 ### 9.4 Test de Bascule Automatique (Failover)
 
 ```bash
-# Arrêt brutal du nœud Primary
-docker stop mongo1
-# Le cluster élit un nouveau Primary en < 3s
-docker start mongo1   # réintègre le cluster en tant que SECONDARY
+docker stop mongo1   # arrêt brutal du Primary
+docker start mongo1  # réintègre le cluster en tant que SECONDARY
 ```
 
 **Résultat observé :** élection et promotion de `mongo2` en PRIMARY en **2.4 secondes**.
@@ -411,19 +329,3 @@ Pages disponibles : Vue d'ensemble · Usage · Abus & Modération · Engagement 
 | `Initial job has not accepted any resources` | Workers Spark sans mémoire ou cœurs disponibles | Ajuster `--executor-memory 1g` et `--total-executor-cores 2` |
 | `ClassNotFoundException: MongoTableProvider` | Incompatibilité de version Scala / Spark Connector | Utiliser `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
 | Dashboard sans données Spark | Jobs S26-S30 non exécutés | Lancer les jobs et vérifier les collections `stats_*` |
-
----
-
-## 12. Checklist de Démonstration
-
-- [x] Conteneurs Docker démarrés et stables sur Machine A et Machine B
-- [x] Replica Set initialisé (PRIMARY actif + 2 SECONDARY)
-- [x] Cluster Spark Master opérationnel avec 2 Workers connectés (ALIVE)
-- [x] Base de données alimentée avec plus de 100 000 messages et 10 000 utilisateurs
-- [x] Script PySpark S28 (Spam) exécuté et vérifié
-- [x] Démonstration du basculement (`docker stop mongo1`) avec élection en < 3s
-- [x] Interface Streamlit affichant les métriques et graphiques dynamiques
-
----
-
-*Projet réalisé dans le cadre du cycle d'Ingénieur en Cybersécurité et Confiance Numérique (CCN) — ENSAJ 2026/2027.*
