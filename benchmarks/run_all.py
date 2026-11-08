@@ -15,16 +15,16 @@ SPARK_JOBS = [
     "s26_avg_response_time",
     "s27_common_contacts",
     "s28_spam_detection",
-    "s29_report_rate",
-    "s30_cohort_retention",
+    "s29_report_rate_by_sender",
+    "s30_retention_cohorts",
 ]
 
 SPARK_JOB_DESCRIPTIONS = {
     "s26_avg_response_time": "Temps de réponse moyen",
     "s27_common_contacts": "Contacts communs top 20",
     "s28_spam_detection": "Détection spam",
-    "s29_report_rate": "Taux de signalement top 20",
-    "s30_cohort_retention": "Rétention par cohorte",
+    "s29_report_rate_by_sender": "Taux de signalement top 20",
+    "s30_retention_cohorts": "Rétention par cohorte",
 }
 
 NATIVE_FAMILIES = {
