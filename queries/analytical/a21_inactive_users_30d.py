@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -16,7 +16,7 @@ def run():
     """
     db = get_db()
     users = db[COLLECTIONS["users"]]
-    cutoff = datetime.utcnow() - timedelta(days=30)
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
 
     pipeline = [
         {"$match": {"last_login": {"$lt": cutoff}}},
