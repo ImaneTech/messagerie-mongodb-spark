@@ -32,37 +32,25 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 - **Chaîne d'exécution :** Générateur Python (Faker) ➔ MongoDB (`chatdb`) ➔ Connecteur Spark-MongoDB ➔ Pipeline PySpark ➔ Collections `stats_...` ➔ Dashboard Streamlit.
 - **Versions :** MongoDB 7.0, Spark `3.5.3-python3`, Connecteur `mongo-spark-connector_2.12:10.3.0`, Python 3.10+.
 
-### 1.1 Diagramme d'Architecture Globale
+### 1.1 Architecture Système Globale
 
-![Architecture globale et déploiement Docker](screenshots/arch_deploiement.png)
+![Architecture système globale](screenshots/arch_systeme_global.png)
 
-### 1.2 État des Conteneurs Docker Compose (Machine A)
+### 1.2 Flux des Données
 
-![Déploiement Docker Compose](screenshots/deploiment-docker.png)
+![Flux des données](screenshots/arch_flux_donnees.png)
 
 ---
 
 ## 2. Modélisation & Schémas du Système
 
-### 2.1 Topologie du Replica Set MongoDB et Flux Applicatifs
+### 2.1 Séquence de Bascule Automatique (Failover — Élection)
 
-![Topologie du Replica Set MongoDB](screenshots/replica_set_topology.png)
+![Diagramme de séquence failover](screenshots/failover_sequence.png)
 
-### 2.2 Modèle de Données NoSQL (Collections & Références ERD)
+### 2.2 Timeline du Failover (États de mongo1)
 
-![Modèle de données NoSQL](screenshots/modele_nosql.png)
-
-### 2.3 Séquence du Test de Panne et Bascule Automatique (Failover)
-
-![Diagramme de séquence Failover](screenshots/failover_seq.png)
-
-### 2.4 Pipeline d'Agrégation Native (Exemple Requête A16)
-
-![Pipeline Agrégation A16](screenshots/pipeline_a16.png)
-
-### 2.5 Chaîne de Transformation PySpark (Exemple Job S26)
-
-![Pipeline PySpark S26](screenshots/spark_s26_pipeline.png)
+![Timeline failover](screenshots/failover_timeline.png)
 
 ---
 
@@ -91,26 +79,14 @@ messagerie-mongodb-spark/
 │   └── analytical/
 ├── schema/                  # Initialisation et création des 13 index BSON
 │   └── create_indexes.py
-├── screenshots/             # Figures et captures d'écran système
-│   ├── arch_deploiement.png
-│   ├── replica_set_topology.png
-│   ├── modele_nosql.png
-│   ├── failover_seq.png
-│   ├── pipeline_a16.png
-│   ├── spark_s26_pipeline.png
-│   ├── deploiment-docker.png
-│   ├── statut-replica.png
-│   ├── mongodb_collections.png
-│   ├── spark.png
-│   ├── spark_s28.png
-│   └── dashboard.png
+├── screenshots/             # Captures d'écran et schémas du système
 ├── scripts/                 # Scripts système (Failover, simulation de crash)
 │   └── failover_test.py
 ├── spark/                   # Jobs PySpark S26-S30 montés dans /opt/spark-jobs
 │   ├── spark_session.py
 │   ├── jobs/
 │   └── comparaison/
-├── .env.example             # Modèle de variables d'environnement
+├── .env.example
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -134,12 +110,10 @@ messagerie-mongodb-spark/
 git clone https://github.com/votre-repo/messagerie-mongodb-spark.git
 cd messagerie-mongodb-spark
 
-# Initialisation de l'environnement virtuel Python
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Lancement de l'infrastructure principale
 cd machine-a
 docker compose up -d
 ```
@@ -152,7 +126,7 @@ cd messagerie-mongodb-spark/machine-b
 docker compose up -d
 ```
 
-Vérification de la connectivité réseau bidirectionnelle :
+Vérification de la connectivité réseau :
 
 ```powershell
 Test-NetConnection <IP_MACHINE_A> -Port 27017
@@ -169,8 +143,6 @@ Résultat attendu : **1 PRIMARY et 2 SECONDARY**.
 
 - **Spark Master UI :** `http://<IP_MACHINE_A>:18080` — les 2 workers doivent être `ALIVE`.
 
-![Statut Replica Set](screenshots/statut-replica.png)
-
 ---
 
 ## 6. Données & Volumétrie
@@ -178,25 +150,20 @@ Résultat attendu : **1 PRIMARY et 2 SECONDARY**.
 ### Commandes d'initialisation
 
 ```bash
-# 1. Création des 13 index stratégiques
 python -m schema.create_indexes
-
-# 2. Génération et injection par lots (batching de 5 000)
 python -m data_generator.generate_data
 python -m data_generator.load_data
 ```
 
 ### Volumétrie Générée
 
-| Collection | Stratégie | Documents | Description & Champs Clés |
+| Collection | Stratégie | Documents | Description |
 |---|---|---|---|
-| `users` | Imbriqué | **10 000** | Profils utilisateurs, tableau `contacts[]`, sous-document `settings{}` |
-| `conversations` | Imbriqué | **8 000** | Métadonnées de chats, tableau `participants[]` (`user_id`, `role`) |
-| `messages` | Référence | **105 420** | Référence `conversation_id` & `sender_id`. Imbrique `attachment{}` et `reactions[]` |
-| `read_status` | Séparée | **38 450** | Horodatage `last_read_ts` par participant sans verrouiller `conversations` |
-| `reports` | Séparée | **1 420** | Signalements de modération référençant `message_id` |
-
-![Collections MongoDB Compass](screenshots/mongodb_collections.png)
+| `users` | Imbriqué | **10 000** | Profils, tableau `contacts[]`, sous-document `settings{}` |
+| `conversations` | Imbriqué | **8 000** | Métadonnées, tableau `participants[]` |
+| `messages` | Référence | **105 420** | Référence `conversation_id` & `sender_id`, imbrique `attachment{}` et `reactions[]` |
+| `read_status` | Séparée | **38 450** | Horodatage `last_read_ts` par participant |
+| `reports` | Séparée | **1 420** | Signalements référençant `message_id` |
 
 ---
 
@@ -210,40 +177,40 @@ python -m data_generator.load_data
 | **T02** | Importation massive | `insertMany(ordered=False)` par paquets de 5 000 |
 | **T03** | Recherche profil utilisateur | `findOne` via index unique `pseudo` |
 | **T04** | 50 derniers messages d'un chat | `find` + `sort` + `limit(50)` via index composé `(conversation_id, ts: -1)` |
-| **T05** | Pagination des messages antérieurs | Filtre relatif `$lt` par curseur sur l'index de T04 |
+| **T05** | Pagination des messages antérieurs | Filtre `$lt` par curseur sur l'index de T04 |
 | **T06** | Lister les chats d'un membre | Index composé `(participants.user_id, last_message_at: -1)` |
 | **T07** | Créer un groupe de discussion | `insertOne` dans `conversations` avec tableau de participants |
-| **T08** | Gérer les membres d'un groupe | Mise à jour via `$push`, `$pull` et `$inc` |
+| **T08** | Gérer les membres d'un groupe | `$push`, `$pull` et `$inc` |
 | **T09** | Édition de texte d'un message | `updateOne` atomique avec `$set` sur le contenu et `is_edited` |
-| **T10** | Masquage (Suppression douce) | Update atomique de la valeur logique `is_deleted` |
-| **T11** | Réagir avec un emoji | Opérateur BSON `$push` sur le tableau `reactions` |
-| **T12** | Marquer une discussion comme lue | `updateOne` avec option `upsert=True` sur `read_status` |
-| **T13** | Compter les messages non lus | `countDocuments` avec filtre `$gt` comparé au dernier `read_status` |
-| **T14** | Purge des messages éphémères | Suppression automatique par Index TTL sur `expire_at` |
-| **T15** | Soumettre un signalement | `insertOne` dans `reports` référençant le message concerné |
+| **T10** | Masquage (Suppression douce) | Update atomique de `is_deleted` |
+| **T11** | Réagir avec un emoji | `$push` sur le tableau `reactions` |
+| **T12** | Marquer une discussion comme lue | `updateOne` avec `upsert=True` sur `read_status` |
+| **T13** | Compter les messages non lus | `countDocuments` avec filtre `$gt` sur `last_read_ts` |
+| **T14** | Purge des messages éphémères | Index TTL sur `expire_at` |
+| **T15** | Soumettre un signalement | `insertOne` dans `reports` |
 
 ### Analytiques Natives (A16 à A25) — Aggregation Pipelines
 
-| ID | Requête | Étapes du Pipeline MongoDB |
+| ID | Requête | Étapes du Pipeline |
 |---|---|---|
 | **A16** | Volume de messages par jour | `$match` ➔ `$group` (`$dateToString`) ➔ `$sort` |
-| **A17** | Top 10 des membres les plus actifs | `$group` par expéditeur ➔ `$sort` ➔ `$limit(10)` ➔ `$lookup` |
-| **A18** | Répartition par type de contenu | `$group` par le champ `type` (text, image, audio) |
-| **A19** | Taille moyenne des pièces jointes | Match pièces jointes non nulles ➔ `$group` (`$avg` sur `size_bytes`) |
-| **A20** | Groupes de plus de 50 membres | Match sur type groupe ➔ `$match` sur l'index `participants_count` |
-| **A21** | Décompte des utilisateurs inactifs | Filtre direct sur l'index `last_seen` (≥ 30 jours) |
-| **A22** | Distribution horaire des envois | Aggregation avec extraction de l'heure via `$hour` |
+| **A17** | Top 10 utilisateurs actifs | `$group` ➔ `$sort` ➔ `$limit(10)` ➔ `$lookup` |
+| **A18** | Répartition par type de contenu | `$group` par `type` (text, image, audio) |
+| **A19** | Taille moyenne des pièces jointes | `$match` + `$group` (`$avg` sur `size_bytes`) |
+| **A20** | Groupes de plus de 50 membres | Filtre sur `type=group` et `participants_count` |
+| **A21** | Utilisateurs inactifs depuis 30 jours | Range query indexée sur `last_login` |
+| **A22** | Distribution horaire des envois | `$group` sur `$hour` |
 | **A23** | Emoji le plus populaire | `$unwind` ➔ `$group` ➔ `$sort` ➔ `$limit(1)` |
-| **A24** | Synthèse des motifs de signalement | `$group` sur le tuple `(reason, status)` |
-| **A25** | Discussions abandonnées | Filtre sur l'index `last_message_at` (≥ 7 jours) |
+| **A24** | Synthèse des motifs de signalement | `$group` sur `(reason, status)` |
+| **A25** | Discussions abandonnées | Filtre sur `last_message_at` (≥ 7 jours) |
 
 ---
 
 ## 8. Traitements Distribués PySpark
 
-Les scripts distribués se trouvent dans `spark/jobs/` et stockent leurs résultats dans des collections `stats_...` de MongoDB.
+Les jobs se trouvent dans `spark/jobs/` et écrivent leurs résultats dans des collections `stats_...` de MongoDB.
 
-### Soumission d'un Job au Cluster
+### Soumission d'un Job
 
 ```bash
 docker exec -it spark-master /opt/spark/bin/spark-submit \
@@ -254,27 +221,22 @@ docker exec -it spark-master /opt/spark/bin/spark-submit \
   /opt/spark-jobs/jobs/s28_spam_detection.py
 ```
 
-![Cluster Spark](screenshots/spark.png)
-
-| ID | Job Spark | Algorithme / Transformation DataFrames |
+| ID | Job Spark | Algorithme |
 |---|---|---|
-| **S26** | Temps de réponse moyen | Fenêtrage `Window.partitionBy("conversation_id").orderBy("ts")` et calcul `lag()` |
-| **S27** | Contacts communs (Top 20) | `explode()` des listes de contacts suivi d'un Self-Join distribué |
-| **S28** | Détection de spammers | Fenêtre glissante d'1 heure, groupement par expéditeur + texte, filtre `countDistinct(conversation_id) > 20` |
-| **S29** | Taux de messages signalés | Jointure distribuée `messages`/`reports` + agrégation du taux relatif |
-| **S30** | Rétention par cohorte | Groupement par mois d'inscription et recoupement avec les activités du mois M+1 |
-
-![Résultat Job S28 Spam](screenshots/spark_s28.png)
+| **S26** | Temps de réponse moyen | `Window.partitionBy("conversation_id").orderBy("ts")` + `lag()` |
+| **S27** | Contacts communs (Top 20) | `explode()` + Self-Join distribué |
+| **S28** | Détection de spammers | Fenêtre 1h, `countDistinct(conversation_id) > 20` |
+| **S29** | Taux de messages signalés | Jointure `messages`/`reports` + agrégation |
+| **S30** | Rétention par cohorte | Groupement par mois d'inscription + activité M+1 |
 
 ---
 
 ## 9. Benchmarks, Sécurité & Failover
 
-### 9.1 Exécution des Benchmarks Globaux
+### 9.1 Exécution
 
 ```bash
 python benchmarks/run_all.py
-python benchmarks/run_native_queries.py
 python benchmarks/index_test.py
 python benchmarks/consistency_test.py
 ```
@@ -285,8 +247,6 @@ python benchmarks/consistency_test.py
 |---|---|---|
 | `w: 1` | **2.4 ms** | Acquittement primaire uniquement |
 | `w: majority` | **8.1 ms** | Acquittement par ≥ 2 nœuds sur 3 |
-
-Le mode `w: majority` garantit la non-perte de données en cas de crash au prix d'un facteur d'écriture de ~3.5×.
 
 ### 9.3 Gain apporté par l'Indexation (T04)
 
@@ -304,6 +264,10 @@ docker start mongo1  # réintègre le cluster en tant que SECONDARY
 
 **Résultat observé :** élection et promotion de `mongo2` en PRIMARY en **2.4 secondes**.
 
+![Séquence d'élection failover](screenshots/failover_sequence.png)
+
+![Timeline des états mongo1](screenshots/failover_timeline.png)
+
 ---
 
 ## 10. Tableau de Bord Streamlit
@@ -312,11 +276,51 @@ docker start mongo1  # réintègre le cluster en tant que SECONDARY
 streamlit run dashboard/app.py
 ```
 
-Accessible à l'adresse : `http://localhost:8501` ou `http://<IP_MACHINE_A>:8501`
+Accessible à `http://localhost:8501` ou `http://<IP_MACHINE_A>:8501`
 
-Pages disponibles : Vue d'ensemble · Usage · Abus & Modération · Engagement · Performance
+### Vue d'ensemble — KPIs et messages par jour (A16)
 
-![Dashboard Streamlit](screenshots/dashboard.png)
+![Vue d'ensemble](screenshots/dashboard_vue_ensemble.png)
+
+### Usage — Répartition par type de message (A18)
+
+![Répartition par type de message](screenshots/dashboard_usage_type_messages.png)
+
+### Usage — Messages par heure de la journée (A22)
+
+![Messages par heure](screenshots/dashboard_usage_messages_heure.png)
+
+### Usage — Top 10 utilisateurs actifs (A17)
+
+![Top 10 utilisateurs actifs](screenshots/dashboard_usage_top_utilisateurs.png)
+
+### Abus et modération — Signalements par motif et statut (A24)
+
+![Signalements par motif et statut](screenshots/dashboard_abus_signalements.png)
+
+### Abus et modération — Taux de signalement par expéditeur (S29)
+
+![Taux de signalement S29](screenshots/dashboard_abus_taux_s29.png)
+
+### Abus et modération — Expéditeurs de spam détectés (S28)
+
+![Expéditeurs de spam S28](screenshots/dashboard_abus_spam_s28.png)
+
+### Engagement — Rétention par cohorte mensuelle (S30)
+
+![Rétention par cohorte S30](screenshots/dashboard_engagement_retention_s30.png)
+
+### Engagement — Temps de réponse moyen (S26)
+
+![Temps de réponse S26](screenshots/dashboard_engagement_response_s26.png)
+
+### Performance — Temps moyen toutes requêtes
+
+![Temps moyen toutes requêtes](screenshots/dashboard_performance_all_queries.png)
+
+### Performance — Comparaison MongoDB natif vs Spark + Tests d'index
+
+![Benchmark natif vs Spark et index](screenshots/dashboard_performance_benchmark.png)
 
 ---
 
@@ -324,8 +328,8 @@ Pages disponibles : Vue d'ensemble · Usage · Abus & Modération · Engagement 
 
 | Problème | Cause Possible | Solution |
 |---|---|---|
-| `Address already in use` sous Windows | Ports TCP bloqués par la plage réservée Hyper-V / WSL2 | `netsh interface ipv4 show excludedportrange protocol=tcp` et réaffecter le port |
-| `mongo3` absent du Replica Set | Pare-feu bloquant ou mauvaise IP dans `.env` | Ouvrir le port `27017` et tester via `Test-NetConnection` |
-| `Initial job has not accepted any resources` | Workers Spark sans mémoire ou cœurs disponibles | Ajuster `--executor-memory 1g` et `--total-executor-cores 2` |
-| `ClassNotFoundException: MongoTableProvider` | Incompatibilité de version Scala / Spark Connector | Utiliser `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
+| `Address already in use` sous Windows | Ports bloqués par Hyper-V / WSL2 | `netsh interface ipv4 show excludedportrange protocol=tcp` et réaffecter le port |
+| `mongo3` absent du Replica Set | Pare-feu ou mauvaise IP dans `.env` | Ouvrir le port `27017` et tester via `Test-NetConnection` |
+| `Initial job has not accepted any resources` | Workers Spark sans ressources disponibles | Ajuster `--executor-memory 1g` et `--total-executor-cores 2` |
+| `ClassNotFoundException: MongoTableProvider` | Mauvaise version du Spark Connector | Utiliser `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
 | Dashboard sans données Spark | Jobs S26-S30 non exécutés | Lancer les jobs et vérifier les collections `stats_*` |
