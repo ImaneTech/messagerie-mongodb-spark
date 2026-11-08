@@ -12,7 +12,7 @@ from config.settings import MONGO_DB, MONGO_URI
 
 def get_db():
     """Retourne l'objet Database MongoDB connecté au Replica Set."""
-    client = MongoClient(MONGO_URI)
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     return client[MONGO_DB]
 
 

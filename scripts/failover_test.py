@@ -76,7 +76,7 @@ def run(mode):
     client = MongoClient(MONGO_URI, w="majority", serverSelectionTimeoutMS=30000)
     coll = client[MONGO_DB]["failover_test"]
     w0 = time.perf_counter()
-    coll.insert_one({"ts": datetime.utcnow(), "mode": mode})
+    coll.insert_one({"ts": datetime.now(), "mode": mode})
     write_time = time.perf_counter() - w0
 
     subprocess.run(["docker", "start", "mongo1"], check=True, capture_output=True)
