@@ -34,11 +34,15 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 
 ### 1.1 Architecture Système Globale
 
-![Architecture système globale](screenshots/arch_systeme_global.png)
+<p align="center">
+  <img src="./screenshots/arch_systeme_global.png" width="100%" alt="Architecture système globale" />
+</p>
 
 ### 1.2 Flux des Données
 
-![Flux des données](screenshots/arch_flux_donnees.png)
+<p align="center">
+  <img src="./screenshots/arch_flux_donnees.png" width="100%" alt="Flux des données" />
+</p>
 
 ---
 
@@ -46,11 +50,15 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 
 ### 2.1 Séquence de Bascule Automatique (Failover — Élection)
 
-![Diagramme de séquence failover](screenshots/failover_sequence.png)
+<p align="center">
+  <img src="./screenshots/failover_sequence.png" width="100%" alt="Diagramme de séquence failover" />
+</p>
 
 ### 2.2 Timeline du Failover (États de mongo1)
 
-![Timeline failover](screenshots/failover_timeline.png)
+<p align="center">
+  <img src="./screenshots/failover_timeline.png" width="100%" alt="Timeline failover" />
+</p>
 
 ---
 
@@ -118,7 +126,9 @@ cd machine-a
 docker compose up -d
 ```
 
-![Docker Compose Machine A — conteneurs démarrés](screenshots/docker_compose_machine_a.png)
+<p align="center">
+  <img src="./screenshots/docker_compose_machine_a.png" width="100%" alt="Docker Compose Machine A — conteneurs démarrés" />
+</p>
 
 ### 5.2 Déploiement Machine B
 
@@ -143,11 +153,15 @@ docker exec -it mongo1 mongosh --eval "rs.status().members.map(m => [m.name, m.s
 
 Résultat attendu : **1 PRIMARY et 2 SECONDARY**.
 
-![Statut Replica Set](screenshots/replica_set_status.png)
+<p align="center">
+  <img src="./screenshots/replica_set_status.png" width="100%" alt="Statut Replica Set — 1 PRIMARY + 2 SECONDARY" />
+</p>
 
 - **Spark Master UI :** `http://<IP_MACHINE_A>:18080` — les 2 workers doivent être `ALIVE`.
 
-![Spark Master UI — 2 workers ALIVE](screenshots/spark_master_ui.png)
+<p align="center">
+  <img src="./screenshots/spark_master_ui.png" width="100%" alt="Spark Master UI — 2 workers ALIVE" />
+</p>
 
 ---
 
@@ -171,7 +185,9 @@ python -m data_generator.load_data
 | `read_status` | Séparée | **38 450** | Horodatage `last_read_ts` par participant |
 | `reports` | Séparée | **1 420** | Signalements référençant `message_id` |
 
-![MongoDB Compass — collections chatdb et volumes](screenshots/mongodb_compass_collections.png)
+<p align="center">
+  <img src="./screenshots/mongodb_compass_collections.png" width="100%" alt="MongoDB Compass — collections chatdb et volumes" />
+</p>
 
 ---
 
@@ -272,11 +288,17 @@ docker start mongo1  # réintègre le cluster en tant que SECONDARY
 
 **Résultat observé :** élection et promotion de `mongo2` en PRIMARY en **2.4 secondes**.
 
-![Terminal — test de bascule failover](screenshots/failover_test_terminal.png)
+<p align="center">
+  <img src="./screenshots/failover_test_terminal.png" width="100%" alt="Terminal — test de bascule failover" />
+</p>
 
-![Séquence d'élection failover](screenshots/failover_sequence.png)
+<p align="center">
+  <img src="./screenshots/failover_sequence.png" width="100%" alt="Séquence d'élection failover" />
+</p>
 
-![Timeline des états mongo1](screenshots/failover_timeline.png)
+<p align="center">
+  <img src="./screenshots/failover_timeline.png" width="100%" alt="Timeline des états mongo1" />
+</p>
 
 ---
 
@@ -290,47 +312,69 @@ Accessible à `http://localhost:8501` ou `http://<IP_MACHINE_A>:8501`
 
 ### Vue d'ensemble — KPIs et messages par jour (A16)
 
-![Vue d'ensemble](screenshots/dashboard_vue_ensemble.png)
+<p align="center">
+  <img src="./screenshots/dashboard_vue_ensemble.png" width="100%" alt="Vue d'ensemble — KPIs et messages par jour" />
+</p>
 
 ### Usage — Répartition par type de message (A18)
 
-![Répartition par type de message](screenshots/dashboard_usage_type_messages.png)
+<p align="center">
+  <img src="./screenshots/dashboard_usage_type_messages.png" width="100%" alt="Répartition par type de message" />
+</p>
 
 ### Usage — Messages par heure de la journée (A22)
 
-![Messages par heure](screenshots/dashboard_usage_messages_heure.png)
+<p align="center">
+  <img src="./screenshots/dashboard_usage_messages_heure.png" width="100%" alt="Messages par heure de la journée" />
+</p>
 
 ### Usage — Top 10 utilisateurs actifs (A17)
 
-![Top 10 utilisateurs actifs](screenshots/dashboard_usage_top_utilisateurs.png)
+<p align="center">
+  <img src="./screenshots/dashboard_usage_top_utilisateurs.png" width="100%" alt="Top 10 utilisateurs actifs" />
+</p>
 
 ### Abus et modération — Signalements par motif et statut (A24)
 
-![Signalements par motif et statut](screenshots/dashboard_abus_signalements.png)
+<p align="center">
+  <img src="./screenshots/dashboard_abus_signalements.png" width="100%" alt="Signalements par motif et statut" />
+</p>
 
 ### Abus et modération — Taux de signalement par expéditeur (S29)
 
-![Taux de signalement S29](screenshots/dashboard_abus_taux_s29.png)
+<p align="center">
+  <img src="./screenshots/dashboard_abus_taux_s29.png" width="100%" alt="Taux de signalement S29" />
+</p>
 
 ### Abus et modération — Expéditeurs de spam détectés (S28)
 
-![Expéditeurs de spam S28](screenshots/dashboard_abus_spam_s28.png)
+<p align="center">
+  <img src="./screenshots/dashboard_abus_spam_s28.png" width="100%" alt="Expéditeurs de spam S28" />
+</p>
 
 ### Engagement — Rétention par cohorte mensuelle (S30)
 
-![Rétention par cohorte S30](screenshots/dashboard_engagement_retention_s30.png)
+<p align="center">
+  <img src="./screenshots/dashboard_engagement_retention_s30.png" width="100%" alt="Rétention par cohorte mensuelle S30" />
+</p>
 
 ### Engagement — Temps de réponse moyen (S26)
 
-![Temps de réponse S26](screenshots/dashboard_engagement_response_s26.png)
+<p align="center">
+  <img src="./screenshots/dashboard_engagement_response_s26.png" width="100%" alt="Temps de réponse moyen S26" />
+</p>
 
 ### Performance — Temps moyen toutes requêtes
 
-![Temps moyen toutes requêtes](screenshots/dashboard_performance_all_queries.png)
+<p align="center">
+  <img src="./screenshots/dashboard_performance_all_queries.png" width="100%" alt="Temps moyen par requête" />
+</p>
 
 ### Performance — Comparaison MongoDB natif vs Spark + Tests d'index
 
-![Benchmark natif vs Spark et index](screenshots/dashboard_performance_benchmark.png)
+<p align="center">
+  <img src="./screenshots/dashboard_performance_benchmark.png" width="100%" alt="Benchmark natif vs Spark et tests d'index" />
+</p>
 
 ---
 
