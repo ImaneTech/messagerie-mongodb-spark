@@ -211,8 +211,9 @@ else:
     print("  [!] ATTENTION : des counts ont change - verifier les modules write.")
 
 # Sauvegarde CSV
-save_query_results(results)
-print("\nResultats sauvegardes dans benchmarks/results/queries_native.csv")
+results_path = os.path.join(os.path.dirname(__file__), "results", "queries_native.csv")
+save_query_results(results_path, results)
+print(f"\nResultats sauvegardes dans {results_path}")
 
 # Suppression de benchmarks.json si present
 bj = os.path.join(os.path.dirname(__file__), "results", "benchmarks.json")
