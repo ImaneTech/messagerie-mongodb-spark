@@ -15,7 +15,10 @@ MONGO_DB = os.getenv("MONGO_DB", "chatdb")
 
 # Chaîne de connexion MongoDB Replica Set multi-hôtes
 # Permet au driver PyMongo de basculer automatiquement en cas de panne du primaire
-MONGO_URI = f"mongodb://{IP_A}:27017,{IP_A}:27018,{IP_B}:27017/?replicaSet=rs0"
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    f"mongodb://{IP_A}:27017,{IP_A}:27018,{IP_B}:27017/?replicaSet=rs0",
+)
 
 # Dictionnaire de référence des 5 collections principales
 COLLECTIONS = {
