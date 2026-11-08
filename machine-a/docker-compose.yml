@@ -5,6 +5,9 @@ services:
     command: mongod --replSet rs0 --bind_ip_all --port 27017
     ports: ["27017:27017"]
     volumes: [mongo1-data:/data/db]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
 
   mongo2:
     image: mongo:7
@@ -12,6 +15,9 @@ services:
     command: mongod --replSet rs0 --bind_ip_all --port 27018
     ports: ["27018:27018"]
     volumes: [mongo2-data:/data/db]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
 
   spark-master:
     image: apache/spark:3.5.3-python3
@@ -19,6 +25,7 @@ services:
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
     environment:
       SPARK_PUBLIC_DNS: ${IP_A}
+      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27017/?replicaSet=rs0
     ports:
       - "18080:8080"
       - "7077:7077"
@@ -33,6 +40,7 @@ services:
       SPARK_PUBLIC_DNS: ${IP_A}
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
+      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27017/?replicaSet=rs0
     ports:
       - "18081:8081"
     depends_on:
@@ -46,6 +54,7 @@ services:
       SPARK_PUBLIC_DNS: ${IP_A}
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
+      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27017/?replicaSet=rs0
     ports:
       - "18082:8081"
     depends_on:
