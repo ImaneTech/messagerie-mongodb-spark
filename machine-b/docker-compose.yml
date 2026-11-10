@@ -2,12 +2,25 @@ services:
   mongo3:
     image: mongo:7
     container_name: mongo3
-    command: mongod --replSet rs0 --bind_ip_all --port 27017
-    ports: ["27017:27017"]
+    command: mongod --replSet rs0 --bind_ip_all --port 27019
+    ports: ["27019:27019"]
     volumes: [mongo3-data:/data/db]
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=admin123
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chat_net
+
+networks:
+  chat_net:
+    driver: bridge
 
 volumes:
   mongo3-data:
+    name: pc-b_mongo3-data
