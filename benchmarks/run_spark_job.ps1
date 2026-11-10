@@ -1,4 +1,4 @@
-# run_spark_job.ps1 — Lance un job Spark dans le conteneur spark-master
+﻿# run_spark_job.ps1 — Lance un job Spark dans le conteneur spark-master
 #
 # Utilisation :
 #   1. Définir l'URI MongoDB dans la variable d'environnement :
@@ -16,7 +16,8 @@ param(
 )
 
 if (-not $env:MONGO_URI) {
-    $env:MONGO_URI = python -c "import sys; sys.path.insert(0, '..'); from config.settings import MONGO_URI; print(MONGO_URI)"
+    $projectRoot = (Resolve-Path "$PSScriptRoot\..").Path
+    $env:MONGO_URI = python -c "import sys; sys.path.insert(0, r'$projectRoot'); from config.settings import MONGO_URI; print(MONGO_URI)"
     if (-not $env:MONGO_URI) {
         Write-Error "Impossible de lire MONGO_URI depuis config.settings"
         exit 1

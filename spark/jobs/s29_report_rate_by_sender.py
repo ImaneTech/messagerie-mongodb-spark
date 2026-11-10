@@ -41,13 +41,23 @@ result = (
     .limit(20)
 )
 
+# 5. Mesure de l'action de calcul distribué (3 runs, moyenne conforme guide §4.7)
+spark_times = []
+for _ in range(3):
+    t0 = time.time()
+    res = result.collect()
+    spark_times.append((time.time() - t0) * 1000)
+
+avg_ms = sum(spark_times) / len(spark_times)
+print(f"SPARK_AVG_MS={avg_ms:.0f}")
+print(f"DUREE_MS={avg_ms:.0f}")
 result.show()
 
 # 6. Sauvegarde des résultats d'audit dans stats_s29
 start_write = time.time()
 result.write.format("mongodb").option("collection", "stats_s29").mode("overwrite").save()
 duration_ms = (time.time() - start_write) * 1000
-print(f"DUREE_MS={duration_ms:.0f}")
+print(f"WRITE_MS={duration_ms:.0f}")
 
 rows = result.count()
 print(f"Lignes écrites dans stats_s29 : {rows}")
