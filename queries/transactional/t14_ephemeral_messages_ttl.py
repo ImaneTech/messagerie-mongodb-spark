@@ -10,9 +10,9 @@ from config.settings import COLLECTIONS
 from queries.utils import get_db
 
 
-def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl_seconds=3600):
+def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl_seconds=86400):
     """
-    T14: Messages éphémères avec TTL (auto-suppression).
+    T14: Messages éphémères avec TTL de 24h (auto-suppression).
     Insert un message avec le champ expire_at (index TTL configuré avec expireAfterSeconds=0).
     Le document est tagué _benchmark=True et supprimé après le timing.
     """

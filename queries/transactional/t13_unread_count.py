@@ -9,96 +9,66 @@ from config.settings import COLLECTIONS
 from queries.utils import get_db
 
 
+# Cache de la paire de test pour éviter de répéter la recherche dans les benchmarks
+_cached_pair = None
+
+
+def get_test_pair(db):
+    global _cached_pair
+    if _cached_pair:
+        return _cached_pair
+
+    read_status = db[COLLECTIONS["read_status"]]
+    messages = db[COLLECTIONS["messages"]]
+
+    # Trouver une paire avec des messages non lus
+    for st in read_status.find({"last_read_ts": {"$ne": None}}, limit=50):
+        cid = st.get("conversation_id")
+        uid = st.get("user_id")
+        last_read = st.get("last_read_ts")
+        if cid and uid and last_read:
+            cnt = messages.count_documents({
+                "conversation_id": cid,
+                "deleted": False,
+                "sender_id": {"$ne": uid},
+                "ts": {"$gt": last_read},
+            })
+            if cnt > 0:
+                _cached_pair = (cid, uid)
+                return _cached_pair
+
+    # Fallback sur la première entrée disponible
+    first = read_status.find_one()
+    if first:
+        _cached_pair = (first["conversation_id"], first["user_id"])
+        return _cached_pair
+    return None, None
+
+
 def run(conversation_id=None, user_id=None):
     """
-    T13: Compter les messages non lus d'un utilisateur.
-    Cherche d'abord une paire avec des non-lus réels ; si aucune,
-    force un test artificiel sur le 20e message le plus récent.
+    T13: Compter les messages non lus d'un utilisateur dans une conversation.
+    Exclut les messages supprimés et les messages émis par l'utilisateur lui-même.
+    Utilise l'index composé {conversation_id: 1, ts: -1}.
     """
     db = get_db()
     read_status = db[COLLECTIONS["read_status"]]
     messages = db[COLLECTIONS["messages"]]
 
-    # ── Cas 1 : paire explicitement fournie ─────────────────────────────────
-    if conversation_id and user_id:
-        st = read_status.find_one({"conversation_id": conversation_id, "user_id": user_id})
-        last_read = st["last_read_ts"] if st else None
-        query = {"conversation_id": conversation_id, "deleted": False}
-        if last_read:
-            query["ts"] = {"$gt": last_read}
-        return messages.count_documents(query)
-
-    # ── Cas 2 : chercher une paire avec non-lus réels ───────────────────────
-    for st in read_status.find({}, limit=200):
-        cid = st.get("conversation_id")
-        last_read = st.get("last_read_ts")
-        if not last_read:
-            continue
-        count = messages.count_documents(
-            {"conversation_id": cid, "deleted": False, "ts": {"$gt": last_read}}
-        )
-        if count > 0:
-            return count
-
-    # ── Cas 3 : test artificiel ──────────────────────────────────────────────
-    # Trouver une conversation avec >= 20 messages
-    pipeline = [
-        {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
-        {"$match": {"count": {"$gte": 20}}},
-        {"$sort": {"count": -1}},
-        {"$limit": 1},
-    ]
-    top = list(messages.aggregate(pipeline))
-    if not top:
-        return 0
-    target_conv = top[0]["_id"]
-
-    # Trouver le 20e message le plus récent
-    msg_20th = list(
-        messages.find({"conversation_id": target_conv, "deleted": False}, {"ts": 1})
-        .sort("ts", DESCENDING)
-        .skip(19)
-        .limit(1)
-    )
-    if not msg_20th:
-        return 0
-    ts_20th = msg_20th[0]["ts"]
-
-    # Trouver ou créer un doc read_status pour ce test
-    target_user = None
-    st_doc = read_status.find_one({"conversation_id": target_conv})
-    if st_doc:
-        target_user = st_doc["user_id"]
-        old_ts = st_doc.get("last_read_ts")
-        # Mettre à jour last_read_ts au 20e message
-        read_status.update_one(
-            {"conversation_id": target_conv, "user_id": target_user},
-            {"$set": {"last_read_ts": ts_20th}},
-        )
-    else:
-        # Utiliser le premier utilisateur connu
-        first_user = db[COLLECTIONS["users"]].find_one({}, {"_id": 1})
-        target_user = first_user["_id"] if first_user else None
-        if not target_user:
+    if not conversation_id or not user_id:
+        conversation_id, user_id = get_test_pair(db)
+        if not conversation_id:
             return 0
-        old_ts = None
-        read_status.insert_one(
-            {"conversation_id": target_conv, "user_id": target_user, "last_read_ts": ts_20th}
-        )
 
-    # Compter les non-lus
-    count = messages.count_documents(
-        {"conversation_id": target_conv, "deleted": False, "ts": {"$gt": ts_20th}}
-    )
+    st = read_status.find_one({"conversation_id": conversation_id, "user_id": user_id})
+    last_read = st.get("last_read_ts") if st else None
 
-    # Restaurer l'ancienne valeur
-    if old_ts is not None:
-        read_status.update_one(
-            {"conversation_id": target_conv, "user_id": target_user},
-            {"$set": {"last_read_ts": old_ts}},
-        )
-    else:
-        # On avait inséré un doc de test : le supprimer
-        read_status.delete_one({"conversation_id": target_conv, "user_id": target_user})
+    query = {
+        "conversation_id": conversation_id,
+        "deleted": False,
+        "sender_id": {"$ne": user_id},
+    }
+    if last_read:
+        query["ts"] = {"$gt": last_read}
 
-    return count
+    return messages.count_documents(query)

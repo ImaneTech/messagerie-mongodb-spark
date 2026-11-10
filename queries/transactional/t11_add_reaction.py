@@ -32,6 +32,8 @@ def run(message_id=None, user_id=None, emoji="🔥"):
         _original_state["user_id"] = user_id
         _original_state["reactions"] = list(msg.get("reactions", []))
 
+    # Évite les réactions en double par un même utilisateur
+    messages.update_one({"_id": message_id}, {"$pull": {"reactions": {"user_id": user_id}}})
     res = messages.update_one(
         {"_id": message_id}, {"$push": {"reactions": {"user_id": user_id, "emoji": emoji}}}
     )
