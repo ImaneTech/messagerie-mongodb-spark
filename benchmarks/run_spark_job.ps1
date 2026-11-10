@@ -1,4 +1,4 @@
-﻿# run_spark_job.ps1 — Lance un job Spark dans le conteneur spark-master
+# run_spark_job.ps1 — Lance un job Spark dans le conteneur spark-master
 #
 # Utilisation :
 #   1. Définir l'URI MongoDB dans la variable d'environnement :

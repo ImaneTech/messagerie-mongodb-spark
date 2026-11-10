@@ -27,3 +27,4 @@ docker start spark-worker1 spark-worker2 2>/dev/null
 
 echo "Étape 6 : Contrôle final..."
 python3 scripts/check_cluster.py
+

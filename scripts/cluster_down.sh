@@ -10,3 +10,4 @@ echo "=== 2. Arrêt propre des nœuds MongoDB ==="
 docker stop mongo2 mongo1 2>/dev/null
 
 echo "[OK] Nœuds de la machine A arrêtés proprement."
+

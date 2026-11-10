@@ -91,3 +91,4 @@ if __name__ == "__main__":
     print(f"RÉSUMÉ : MongoDB={'OK' if mongo_ok else 'KO'} | Spark={'OK' if spark_ok else 'KO'}")
     print("=" * 60)
     sys.exit(0 if (mongo_ok and spark_ok) else 1)
+

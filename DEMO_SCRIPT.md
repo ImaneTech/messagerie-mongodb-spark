@@ -134,3 +134,4 @@ python scripts/failover_test.py --mode stop
 
 ### Q5 : Pourquoi utiliser une pagination par curseur temporel (T05) plutôt que `.skip()` ?
 **Réponse :** "`.skip(N)` a une complexité temporelle linéaire $\mathcal{O}(N)$ car MongoDB doit scanner et rejeter $N$ documents en mémoire avant de renvoyer le résultat. Le curseur temporel (`ts < last_seen_ts`) utilise l'arbre B-Tree de l'index pour sauter instantanément au point souhaité en $\mathcal{O}(\log N)$, garantissant un temps de réponse constant quelle que soit la profondeur de défilement dans l'historique."
+
