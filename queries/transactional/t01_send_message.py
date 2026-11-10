@@ -45,7 +45,7 @@ def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text"
     }
 
     messages.insert_one(doc)
-    # Pas de mise à jour de last_message_at pendant le bench pour éviter les effets secondaires
+    conversations.update_one({"_id": conversation_id}, {"$set": {"last_message_at": now}})
     return doc
 
 
