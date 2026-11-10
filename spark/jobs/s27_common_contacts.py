@@ -39,13 +39,24 @@ pairs = joined.groupBy("user_a", "user_b").agg(F.countDistinct("contact_id").ali
 
 # Top 20 des paires les plus connectées
 top20 = pairs.orderBy(F.col("common_count").desc()).limit(20)
+
+# 5. Mesure de l'action de calcul distribué (3 runs, moyenne conforme guide §4.7)
+spark_times = []
+for _ in range(3):
+    t0 = time.time()
+    res = top20.collect()
+    spark_times.append((time.time() - t0) * 1000)
+
+avg_ms = sum(spark_times) / len(spark_times)
+print(f"SPARK_AVG_MS={avg_ms:.0f}")
+print(f"DUREE_MS={avg_ms:.0f}")
 top20.show()
 
-# 5. Persistance du résultat dans MongoDB (collection stats_s27)
+# 6. Persistance du résultat dans MongoDB (collection stats_s27)
 start_write = time.time()
 top20.write.format("mongodb").option("collection", "stats_s27").mode("overwrite").save()
 duration_ms = (time.time() - start_write) * 1000
-print(f"DUREE_MS={duration_ms:.0f}")
+print(f"WRITE_MS={duration_ms:.0f}")
 
 rows = top20.count()
 print(f"Lignes écrites dans stats_s27 : {rows}")

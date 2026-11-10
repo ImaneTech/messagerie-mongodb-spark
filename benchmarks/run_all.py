@@ -88,11 +88,17 @@ def run_consistency_test():
 
 def run_spark_jobs():
     print("\n=== Spark jobs ===")
-    script = os.path.abspath(os.path.join(os.path.dirname(__file__), "run_spark_job.sh"))
+    if sys.platform == "win32":
+        script = os.path.abspath(os.path.join(os.path.dirname(__file__), "run_spark_job.ps1"))
+        cmd_prefix = ["powershell", "-File", script]
+    else:
+        script = os.path.abspath(os.path.join(os.path.dirname(__file__), "run_spark_job.sh"))
+        cmd_prefix = ["bash", script]
+
     for job in SPARK_JOBS:
         print(f"  Lancement {job}...")
         result = subprocess.run(
-            ["bash", script, job], capture_output=False, text=True
+            cmd_prefix + [job], capture_output=False, text=True
         )
         if result.returncode != 0:
             print(f"  ATTENTION: {job} a échoué (code {result.returncode})")
