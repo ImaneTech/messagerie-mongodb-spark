@@ -54,6 +54,7 @@ def generate_users(num_users=10000, seed=42):
                 "phone": fake.phone_number()[:15],
                 "country": fake.country_code(),
                 "created_at": created_at,
+                "registered_at": created_at,  # Conforme spécification ENSAJ §3.2
                 "contacts": [],  # rempli ci-dessous
                 "settings": {
                     "notifications": random.choice([True, False]),
@@ -61,6 +62,7 @@ def generate_users(num_users=10000, seed=42):
                     "read_receipts": random.choice([True, True, False]),
                 },
                 "last_login": last_login,
+                "last_seen": last_login,  # Conforme spécification ENSAJ §3.2
             }
         )
 
@@ -370,23 +372,37 @@ def generate_read_status(conversations, messages, seed=42):
         random.seed(seed)
 
     conv_last_ts = {}
+    conv_messages = {}
     for m in messages:
         cid = m["conversation_id"]
         if cid not in conv_last_ts or m["ts"] > conv_last_ts[cid]:
             conv_last_ts[cid] = m["ts"]
+        if cid not in conv_messages:
+            conv_messages[cid] = []
+        conv_messages[cid].append(m)
 
     read_statuses = []
     for conv in conversations:
         cid = conv["_id"]
+        c_msgs = conv_messages.get(cid, [])
         latest_ts = conv_last_ts.get(cid, conv["last_message_at"])
         for p in conv["participants"]:
             uid = p["user_id"]
-            if random.random() < 0.80:
+            if random.random() < 0.80 or not c_msgs:
                 last_read_ts = latest_ts
+                last_msg_id = c_msgs[-1]["_id"] if c_msgs else None
             else:
                 last_read_ts = latest_ts - timedelta(hours=random.randint(1, 48))
+                read_subset = [m["_id"] for m in c_msgs if m["ts"] <= last_read_ts]
+                last_msg_id = read_subset[-1] if read_subset else (c_msgs[0]["_id"] if c_msgs else None)
+
             read_statuses.append(
-                {"conversation_id": cid, "user_id": uid, "last_read_ts": last_read_ts}
+                {
+                    "conversation_id": cid,
+                    "user_id": uid,
+                    "last_read_ts": last_read_ts,
+                    "last_read_msg_id": last_msg_id,  # Conforme spécification ENSAJ §3.2
+                }
             )
 
     return read_statuses
