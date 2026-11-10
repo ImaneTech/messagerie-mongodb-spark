@@ -17,6 +17,21 @@ services:
     networks:
       - chat_net
 
+  spark-worker2:
+    image: apache/spark:3.5.3-python3
+    container_name: spark-worker2
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://${IP_A}:7077
+    environment:
+      SPARK_PUBLIC_DNS: ${IP_B}
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27019/?replicaSet=rs0&readPreference=primaryPreferred
+    ports:
+      - "18082:8081"
+    restart: unless-stopped
+    networks:
+      - chat_net
+
 networks:
   chat_net:
     driver: bridge
