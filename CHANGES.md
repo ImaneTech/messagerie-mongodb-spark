@@ -58,3 +58,4 @@
 - **Commit :** `e3890ed` (`docs: add 15-minute demo script and jury Q&A`)
 - **Exigences satisfaites :** Guide §4.12, Préparation de la démonstration de 15 minutes.
 - **Fichier ajouté :** [`DEMO_SCRIPT.md`](file:///c:/Users/EMMA/messagerie-mongodb-spark/DEMO_SCRIPT.md) (découpage minuté 0-15 min, commandes exactes à taper, questions pièges du jury avec réponses types).
+

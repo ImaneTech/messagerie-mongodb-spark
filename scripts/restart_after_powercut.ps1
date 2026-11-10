@@ -1,4 +1,4 @@
-﻿# scripts/restart_after_powercut.ps1
+# scripts/restart_after_powercut.ps1
 # Procédure de reprise après coupure de courant (Guide §4.8)
 # Ordre strict : Nœuds de données d'abord -> Attente quorum sain -> Spark Master -> Workers
 
@@ -25,3 +25,4 @@ docker start spark-worker1 spark-worker2
 
 Write-Host "Étape 6 : Contrôle final..." -ForegroundColor Cyan
 python scripts\check_cluster.py
+

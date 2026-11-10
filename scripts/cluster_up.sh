@@ -20,3 +20,4 @@ fi
 echo "=== 3. Vérification de l'état du cluster ==="
 cd ..
 python3 scripts/check_cluster.py
+

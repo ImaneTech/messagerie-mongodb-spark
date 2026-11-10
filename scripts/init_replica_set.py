@@ -64,3 +64,4 @@ def init_replica_set():
 if __name__ == "__main__":
     success = init_replica_set()
     sys.exit(0 if success else 1)
+

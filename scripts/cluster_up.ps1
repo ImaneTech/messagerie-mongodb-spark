@@ -1,4 +1,4 @@
-﻿# scripts/cluster_up.ps1
+# scripts/cluster_up.ps1
 # Démarrage ordonné de l'infrastructure multi-machines (PowerShell)
 
 Write-Host "=== 1. Démarrage des nœuds MongoDB (Machine A) ===" -ForegroundColor Cyan
@@ -14,3 +14,4 @@ docker compose up -d spark-master spark-worker1 spark-worker2
 Write-Host "=== 3. Vérification de l'état du cluster ===" -ForegroundColor Cyan
 Set-Location "$PSScriptRoot\.."
 python scripts\check_cluster.py
+

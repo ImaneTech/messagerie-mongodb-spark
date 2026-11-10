@@ -26,8 +26,8 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 
 | Machine | Services / Conteneurs Docker | Rôle & Ports |
 |---|---|---|
-| **Machine A** (Principale) | `mongo1`<br>`mongo2`<br>`spark-master`<br>`spark-worker1`<br>`spark-worker2`<br>Scripts Python & Streamlit | **PRIMARY** (Port 27017, Priorité 2)<br>**SECONDARY** (Port 27018, Priorité 1)<br>Master Spark (Ports 7077, 18080 UI)<br>Worker 1 (2 cœurs, 2 Go)<br>Worker 2 (2 cœurs, 2 Go)<br>Dashboard (Port 8501) |
-| **Machine B** (Secondaire) | `mongo3` | **SECONDARY** (Port 27017, Priorité 1) |
+| **Machine A** (Principale) | `mongo1`<br>`mongo2`<br>`spark-master`<br>`spark-worker1`<br>`spark-worker2` (optionnel)<br>Scripts Python & Streamlit | **PRIMARY** (Port 27017, Priorité 2)<br>**SECONDARY** (Port 27018, Priorité 1)<br>Master Spark (Ports 7077, 18080 UI)<br>Worker 1 (2 cœurs, 2 Go, Port 18081)<br>Worker 2 (2 cœurs, 2 Go, Port 18082)<br>Dashboard (Port 8501) |
+| **Machine B** (Secondaire) | `mongo3`<br>`spark-worker2` (cible multi-machines) | **SECONDARY** (Port 27019, Priorité 1)<br>Worker 2 distant (2 cœurs, 2 Go, Port 18082) |
 
 - **Chaîne d'exécution :** Générateur Python (Faker) ➔ MongoDB (`chatdb`) ➔ Connecteur Spark-MongoDB ➔ Pipeline PySpark ➔ Collections `stats_...` ➔ Dashboard Streamlit.
 - **Versions :** MongoDB 7.0, Spark `3.5.3-python3`, Connecteur `mongo-spark-connector_2.12:10.3.0`, Python 3.10+.
@@ -137,14 +137,32 @@ cd messagerie-mongodb-spark/machine-b
 docker compose up -d
 ```
 
-Vérification de la connectivité réseau :
+Vérification de la connectivité réseau inter-machines :
 
 ```powershell
-Test-NetConnection <IP_MACHINE_A> -Port 27017
-Test-NetConnection <IP_MACHINE_B> -Port 27017
+Test-NetConnection <IP_MACHINE_A> -Port 27017   # mongo1
+Test-NetConnection <IP_MACHINE_B> -Port 27019   # mongo3
 ```
 
-### 5.3 Validation du Cluster & Replica Set
+### 5.3 Initialisation & Validation du Cluster
+
+Pour initialiser le Replica Set avec les priorités spécifiées (`mongo1` en priorité 2) :
+
+```bash
+python scripts/init_replica_set.py
+# Ou via mongosh direct :
+# docker exec -i mongo1 mongosh --quiet < scripts/init_replica_set.js
+```
+
+Vérification de l'ensemble du cluster (MongoDB + Spark) en une seule commande :
+
+```bash
+python scripts/check_cluster.py
+```
+
+Résultat attendu : **3/3 membres MongoDB en ligne (1 PRIMARY et 2 SECONDARY)** et **2 workers Spark ALIVE**.
+
+Vérification directe via `mongosh` :
 
 ```bash
 docker exec -it mongo1 mongosh --eval "rs.status().members.map(m => [m.name, m.stateStr])"
@@ -381,8 +399,11 @@ Accessible à `http://localhost:8501` ou `http://<IP_MACHINE_A>:8501`
 
 | Problème | Cause Possible | Solution |
 |---|---|---|
-| `Address already in use` sous Windows | Ports bloqués par Hyper-V / WSL2 | `netsh interface ipv4 show excludedportrange protocol=tcp` et réaffecter le port |
-| `mongo3` absent du Replica Set | Pare-feu ou mauvaise IP dans `.env` | Ouvrir le port `27017` et tester via `Test-NetConnection` |
-| `Initial job has not accepted any resources` | Workers Spark sans ressources disponibles | Ajuster `--executor-memory 1g` et `--total-executor-cores 2` |
-| `ClassNotFoundException: MongoTableProvider` | Mauvaise version du Spark Connector | Utiliser `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
-| Dashboard sans données Spark | Jobs S26-S30 non exécutés | Lancer les jobs et vérifier les collections `stats_*` |
+| `permission denied while trying to connect to the docker API at npipe:////./pipe/docker_engine` | Docker Desktop arrêté ou permissions Windows insuffisantes | Démarrer Docker Desktop, attendre qu'il soit "Engine Running", et exécuter PowerShell en tant qu'administrateur |
+| `Spark Master UI : Alive Workers: 0` | Master Spark redémarré ou workers déconnectés après inactivité | Exécuter `docker restart spark-worker1 spark-worker2` pour forcer le ré-enregistrement auprès du master |
+| `Address already in use` sous Windows | Ports bloqués par Hyper-V / WSL2 ou service local | `netsh interface ipv4 show excludedportrange protocol=tcp` ou arrêter le service local concurrent |
+| `mongo3` absent du Replica Set | Pare-feu bloquant ou port incorrect | Ouvrir le port `27019` sur Machine B et tester via `Test-NetConnection <IP_MACHINE_B> -Port 27019` |
+| `Initial job has not accepted any resources` | Workers Spark sans ressources disponibles ou occupés | Ajuster `--executor-memory 1g` et `--total-executor-cores 4`, ou vérifier les workers dans `http://localhost:18080` |
+| `ClassNotFoundException: MongoTableProvider` | Mauvaise version du Spark Connector (incompatibilité Scala) | Utiliser impérativement la version Scala 2.12 : `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
+| Reprise après coupure de courant / arrêt brutal | Inversion de l'ordre de démarrage (Guide §4.8) | Exécuter `scripts/restart_after_powercut.ps1` (ou `.sh`) pour démarrer les bases d'abord, attendre le quorum, puis Spark |
+| Dashboard sans données Spark | Jobs S26-S30 non exécutés | Lancer les jobs via `benchmarks/run_all.py --with-spark` ou vérifier les collections `stats_*` dans MongoDB |
