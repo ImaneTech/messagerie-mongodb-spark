@@ -41,7 +41,7 @@ services:
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
     environment:
       SPARK_PUBLIC_DNS: ${IP_A}
-      MONGO_URI: mongodb://mongo1:27017,mongo2:27018,mongo3:27019/?replicaSet=rs0&readPreference=primaryPreferred
+      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27019/?replicaSet=rs0&readPreference=primaryPreferred
     ports:
       - "18080:8080"
       - "7077:7077"
@@ -64,7 +64,7 @@ services:
       SPARK_PUBLIC_DNS: ${IP_A}
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
-      MONGO_URI: mongodb://mongo1:27017,mongo2:27018,mongo3:27019/?replicaSet=rs0&readPreference=primaryPreferred
+      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27019/?replicaSet=rs0&readPreference=primaryPreferred
     ports:
       - "18081:8081"
     restart: unless-stopped
@@ -82,7 +82,7 @@ services:
       SPARK_PUBLIC_DNS: ${IP_A}
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
-      MONGO_URI: mongodb://mongo1:27017,mongo2:27018,mongo3:27019/?replicaSet=rs0&readPreference=primaryPreferred
+      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27019/?replicaSet=rs0&readPreference=primaryPreferred
     ports:
       - "18082:8081"
     restart: unless-stopped

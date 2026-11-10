@@ -6,28 +6,29 @@ Applique la priorité 2 à mongo1 pour garantir son statut de Primaire.
 
 import sys
 import time
+import os
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-
-from config.settings import MONGO_URI, MONGO_DB
 
 
 def init_replica_set():
     print("Connexion au cluster MongoDB...")
     try:
-        # Connexion directe à mongo1 pour l'initialisation
+        # Connexion directe à mongo1 pour l'initialisation.
         client = MongoClient("mongodb://127.0.0.1:27017/?directConnection=true", serverSelectionTimeoutMS=5000)
         admin = client.admin
     except Exception as e:
         print(f"[ERREUR] Impossible de joindre mongo1 en direct : {e}")
         return False
 
+    ip_a = os.getenv("IP_A", "127.0.0.1")
+    ip_b = os.getenv("IP_B", "127.0.0.1")
     config = {
         "_id": "rs0",
         "members": [
-            {"_id": 0, "host": "mongo1:27017", "priority": 2},
-            {"_id": 1, "host": "mongo2:27018", "priority": 1},
-            {"_id": 2, "host": "mongo3:27019", "priority": 1},
+            {"_id": 0, "host": f"{ip_a}:27017", "priority": 2},
+            {"_id": 1, "host": f"{ip_a}:27018", "priority": 1},
+            {"_id": 2, "host": f"{ip_b}:27019", "priority": 1},
         ],
     }
 
@@ -64,4 +65,3 @@ def init_replica_set():
 if __name__ == "__main__":
     success = init_replica_set()
     sys.exit(0 if success else 1)
-
