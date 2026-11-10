@@ -102,23 +102,26 @@ messagerie-mongodb-spark/
 
 ---
 
-## 4. Prérequis System
+## 4. Prérequis Système
 
-- **Docker Desktop** ou Engine avec Docker Compose v2+ sur les deux machines.
-- **Python 3.10+** avec environnement virtuel configuré.
+- **2 Machines Virtuelles Ubuntu** (22.04 ou 24.04 LTS) configurées avec des adresses IP fixes sur le même sous-réseau local (cartes réseau configurées en mode **Pont / Bridged**).
+- **Docker Engine officiel Linux** avec le plugin Docker Compose v2 (`docker-ce`, `docker-compose-plugin`).
+- Utilisateur membre du groupe docker (`sudo usermod -aG docker $USER`).
+- **Python 3.10+** avec environnement virtuel (`python3-venv`).
+- Pare-feu configuré pour autoriser le trafic inter-machines : `sudo ufw allow from 192.168.0.0/24` (ou désactivé en labo).
 
 ---
 
 ## 5. Installation et Lancement
 
-### 5.1 Déploiement Machine A
+### 5.1 Déploiement Machine A (Hôte Principal)
 
 ```bash
 git clone https://github.com/votre-repo/messagerie-mongodb-spark.git
 cd messagerie-mongodb-spark
 
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 cd machine-a
@@ -129,19 +132,19 @@ docker compose up -d
   <img src="./screenshots/docker_compose_machine_a.png" width="100%" alt="Docker Compose Machine A — conteneurs démarrés" />
 </p>
 
-### 5.2 Déploiement Machine B
+### 5.2 Déploiement Machine B (Nœud Secondaire)
 
-```powershell
+```bash
 cd messagerie-mongodb-spark/machine-b
 # Configurer l'adresse IP de Machine A dans le fichier .env
 docker compose up -d
 ```
 
-Vérification de la connectivité réseau inter-machines :
+Vérification de la connectivité réseau inter-machines (depuis Machine A) :
 
-```powershell
-Test-NetConnection <IP_MACHINE_A> -Port 27017   # mongo1
-Test-NetConnection <IP_MACHINE_B> -Port 27019   # mongo3
+```bash
+nc -zv <IP_MACHINE_A> 27017   # mongo1
+nc -zv <IP_MACHINE_B> 27019   # mongo3 (ou 27017 selon config)
 ```
 
 ### 5.3 Initialisation & Validation du Cluster
@@ -399,11 +402,11 @@ Accessible à `http://localhost:8501` ou `http://<IP_MACHINE_A>:8501`
 
 | Problème | Cause Possible | Solution |
 |---|---|---|
-| `permission denied while trying to connect to the docker API at npipe:////./pipe/docker_engine` | Docker Desktop arrêté ou permissions Windows insuffisantes | Démarrer Docker Desktop, attendre qu'il soit "Engine Running", et exécuter PowerShell en tant qu'administrateur |
-| `Spark Master UI : Alive Workers: 0` | Master Spark redémarré ou workers déconnectés après inactivité | Exécuter `docker restart spark-worker1 spark-worker2` pour forcer le ré-enregistrement auprès du master |
-| `Address already in use` sous Windows | Ports bloqués par Hyper-V / WSL2 ou service local | `netsh interface ipv4 show excludedportrange protocol=tcp` ou arrêter le service local concurrent |
-| `mongo3` absent du Replica Set | Pare-feu bloquant ou port incorrect | Ouvrir le port `27019` sur Machine B et tester via `Test-NetConnection <IP_MACHINE_B> -Port 27019` |
-| `Initial job has not accepted any resources` | Workers Spark sans ressources disponibles ou occupés | Ajuster `--executor-memory 1g` et `--total-executor-cores 4`, ou vérifier les workers dans `http://localhost:18080` |
-| `ClassNotFoundException: MongoTableProvider` | Mauvaise version du Spark Connector (incompatibilité Scala) | Utiliser impérativement la version Scala 2.12 : `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
-| Reprise après coupure de courant / arrêt brutal | Inversion de l'ordre de démarrage (Guide §4.8) | Exécuter `scripts/restart_after_powercut.ps1` (ou `.sh`) pour démarrer les bases d'abord, attendre le quorum, puis Spark |
-| Dashboard sans données Spark | Jobs S26-S30 non exécutés | Lancer les jobs via `benchmarks/run_all.py --with-spark` ou vérifier les collections `stats_*` dans MongoDB |
+| `permission denied while trying to connect to the Docker daemon socket` | L'utilisateur n'est pas dans le groupe `docker` sous Ubuntu | Exécuter `sudo usermod -aG docker $USER` puis recharger la session avec `newgrp docker` ou se reconnecter |
+| `Spark Master UI : Alive Workers: 0` | Master Spark redémarré ou workers déconnectés après inactivité | Exécuter `docker restart spark-worker1 spark-worker2` pour forcer le ré-enregistrement immédiat auprès du Master |
+| `Address already in use` sous Linux | Un service `mongod` ou autre processus tourne déjà sur le port local | Identifier le processus avec `sudo ss -tulpn \| grep :27017` et l'arrêter (`sudo systemctl stop mongod`) |
+| `mongo3` absent ou `Host unreachable` | Pare-feu UFW bloquant ou VM non accessible en mode Pont | Vérifier les règles UFW (`sudo ufw allow 27019/tcp` sur B) et tester via `nc -zv <IP_MACHINE_B> 27019` |
+| `Initial job has not accepted any resources` | Workers Spark sans ressources disponibles ou occupés | Vérifier dans `http://<IP_MACHINE_A>:18080` que les workers sont `ALIVE` et ajuster `--executor-memory 1g` |
+| `ClassNotFoundException: MongoTableProvider` | Incompatibilité de version Scala avec Spark 3.5 | Utiliser impérativement le connecteur Scala 2.12 : `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
+| Reprise après coupure de courant / arrêt brutal | Inversion de l'ordre de démarrage (Guide §4.8) | Exécuter `./scripts/restart_after_powercut.sh` pour démarrer les bases d'abord, attendre le quorum, puis Spark |
+| Dashboard sans données Spark | Jobs S26-S30 non exécutés | Lancer les jobs via `python benchmarks/run_all.py --with-spark` ou vérifier les collections `stats_*` dans MongoDB |
