@@ -106,7 +106,6 @@ messagerie-mongodb-spark/
 
 - **Docker Desktop** ou Engine avec Docker Compose v2+ sur les deux machines.
 - **Python 3.10+** avec environnement virtuel configuré.
-- **Réseau local (LAN) :** Connexion Ethernet recommandée entre Machine A et Machine B avec le port TCP `27017` ouvert dans les pare-feux.
 
 ---
 

@@ -23,9 +23,10 @@ from pathlib import Path
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from config.settings import IP_A, IP_B, MONGO_DB, MONGO_URI
+from config.settings import MONGO_DB, MONGO_URI
 
-MEMBERS = {"mongo1": (IP_A, 27017), "mongo2": (IP_A, 27018), "mongo3": (IP_B, 27017)}
+# Services Docker internes pour les connexions directes
+MEMBERS = {"mongo1": ("mongo1", 27017), "mongo2": ("mongo2", 27018), "mongo3": ("mongo3", 27019)}
 RESULTS = Path("benchmarks/results/failover_test.csv")
 
 
