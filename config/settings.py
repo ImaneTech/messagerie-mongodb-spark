@@ -3,20 +3,21 @@
 import os
 from dotenv import load_dotenv
 
-# Chargement du fichier .env à la racine
+# Load environment variables from .env
 load_dotenv()
 
-# Nom de la base de données
+# Target Database Name
 MONGO_DB = os.getenv("MONGO_DB", "chatdb")
 
-# Chaîne de connexion MongoDB Replica Set multi-hôtes
-# Permet au driver PyMongo de basculer automatiquement en cas de panne du primaire
-IP_A = os.getenv("IP_A", "127.0.0.1")
-IP_B = os.getenv("IP_B", "127.0.0.1")
-MONGO_URI = os.getenv(
-    "MONGO_URI",
-    f"mongodb://{IP_A}:27017,{IP_A}:27018,{IP_B}:27019/?replicaSet=rs0&readPreference=primaryPreferred",
-)
+# IP Configurations
+IP_A = os.getenv("IP_A", "192.168.0.100")
+IP_B = os.getenv("IP_B", "192.168.0.101")
+IP_C = os.getenv("IP_C", "192.168.0.102")
+
+# Default Replica Set Connection String
+DEFAULT_URI = f"mongodb://{IP_A}:27017,{IP_B}:27017,{IP_C}:27017/{MONGO_DB}?replicaSet=rs0&readPreference=primaryPreferred"
+
+MONGO_URI = os.getenv("MONGO_URI", DEFAULT_URI)
 
 # Dictionnaire de référence des 5 collections principales
 COLLECTIONS = {
