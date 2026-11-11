@@ -1,16 +1,16 @@
 """Chargement par lots des données synthétiques dans MongoDB et création des index."""
 
 import argparse
+import os
+import sys
 import time
 
-from data_generator.generate_data import (
-    generate_conversations,
-    generate_messages,
-    generate_read_status,
-    generate_reports,
-    generate_users,
-)
-from queries.utils import get_db
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from pymongo import MongoClient
+
+from config.settings import MONGO_DB, MONGO_URI
+from data_generator.generate_data import generate_all
 from schema.create_indexes import create_indexes
 
 
@@ -25,7 +25,8 @@ def load_data(
     """
     Génère et insère en masse les données synthétiques dans MongoDB.
     """
-    db = get_db()
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    db = client[MONGO_DB]
     print(f"Connexion établie avec la base : '{db.name}'")
 
     if drop:
@@ -38,20 +39,13 @@ def load_data(
         f"Génération des données ({num_users} users, {num_groups + num_direct} convs, ~{target_messages} msgs)..."
     )
     start_time = time.time()
-    users = generate_users(num_users=num_users, seed=42)
-    conversations = generate_conversations(
-        users, num_groups=num_groups, num_direct=num_direct, seed=42
+    data = generate_all(
+        num_users=num_users,
+        num_groups=num_groups,
+        num_direct=num_direct,
+        target_messages=target_messages,
+        seed=42,
     )
-    messages = generate_messages(conversations, users, target_count=target_messages, seed=42)
-    read_statuses = generate_read_status(conversations, messages, seed=42)
-    reports = generate_reports(messages, total_reports=1200, seed=42)
-    data = {
-        "users": users,
-        "conversations": conversations,
-        "messages": messages,
-        "read_status": read_statuses,
-        "reports": reports,
-    }
     gen_duration = time.time() - start_time
     print(f"Données générées en mémoire en {gen_duration:.2f}s.")
 
@@ -81,10 +75,11 @@ def load_data(
     print("Vérification des index...")
     create_indexes()
 
+    client.close()
     print("Chargement des données terminé avec succès !")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Chargement des données synthétiques dans MongoDB."
     )
@@ -104,3 +99,7 @@ if __name__ == "__main__":
         target_messages=args.messages,
         drop=not args.no_drop,
     )
+
+
+if __name__ == "__main__":
+    main()

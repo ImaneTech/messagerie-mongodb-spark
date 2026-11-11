@@ -20,10 +20,11 @@
 ## 1. Architecture Système (2 min)
 
 ### Ce qu'il faut dire :
-> "Notre système repose sur une architecture distribuée déployée sur deux machines physiques interconnectées sur un réseau local dédié :
-> - **Machine A (Hôte principal)** : héberge les nœuds MongoDB `mongo1` (Primaire avec priorité 2) et `mongo2` (Secondaire), ainsi que le `spark-master` et le premier exécuteur `spark-worker1`.
-> - **Machine B (Nœud distant)** : héberge `mongo3` (Secondaire) pour former un Replica Set à 3 membres (`rs0`), garantissant le quorum de vote, ainsi que `spark-worker2` pour la distribution des calculs.
-> Cette topologie respecte le théorème CAP : tolérance aux partitions réseau et consistance forte."
+> "Notre système repose sur une architecture distribuée déployée sur trois machines virtuelles interconnectées sur un réseau local dédié :
+> - **VM1 `192.168.0.100` (Master)** : héberge le nœud MongoDB `mongo1` (Primaire avec priorité 2) et le `spark-master`.
+> - **VM2 `192.168.0.101` (Worker 1)** : héberge `mongo2` (Secondaire) et `spark-worker1`.
+> - **VM3 `192.168.0.102` (Worker 2)** : héberge `mongo3` (Secondaire) et `spark-worker2`.
+> Cela forme un Replica Set à 3 membres (`rs0`) garantissant le quorum de vote, avec deux workers Spark distribués sur des hôtes distincts."
 
 ### Ce qu'il faut montrer à l'écran :
 1. **Terminal Machine A** :
@@ -126,8 +127,8 @@ python scripts/failover_test.py --mode stop
 ### Q2 : Pourquoi Spark est-il plus lent que MongoDB natif sur les requêtes A16 à A18 ?
 **Réponse :** "Spark introduit un coût fixe d'initialisation de session, de sérialisation et de transfert réseau (~1.5s à 2s). Sur un volume de 85 000 documents qui tient en mémoire cache RAM de MongoDB, le moteur en C++ de MongoDB avec indexation est imbattable. En revanche, Spark devient nettement supérieur dès qu'il s'agit de jointures massives entre collections (S29), d'auto-jointures combinatoires de graphe (S27) ou de fenêtrages complexes (S26)."
 
-### Q3 : Que se passe-t-il si la Machine A tombe en panne complètement ?
-**Réponse :** "La Machine A héberge 2 nœuds (`mongo1` et `mongo2`). Si Machine A tombe, il ne reste que `mongo3` sur Machine B (1 nœud sur 3). Selon le protocole de consensus Raft/Paxos de MongoDB, une majorité absolue est obligatoire pour élire un Primaire (soit $\lfloor 3/2 \rfloor + 1 = 2$ votes). Avec 1 seul vote, `mongo3` ne peut pas s'élire Primaire et bascule en mode Secondaire en lecture seule. Les écritures sont bloquées pour préserver l'intégrité et éviter le syndrome de Split-Brain."
+### Q3 : Que se passe-t-il si la VM1 tombe en panne complètement ?
+**Réponse :** "La VM1 héberge `mongo1` et le `spark-master`. Si VM1 tombe, il reste deux nœuds MongoDB (`mongo2` et `mongo3`), soit exactement la majorité requise pour élire un Primaire (2 votes sur 3). Le Replica Set maintient donc la disponibilité en écriture et élit un nouveau Primaire parmi les survivants. En revanche, le Master Spark étant sur VM1, les jobs analytiques sont interrompus jusqu'au retour de VM1 ou à la mise en place d'un master de secours ; les données restent cohérentes et disponibles."
 
 ### Q4 : Quelle est la différence entre `w:1` et `w:majority` ?
 **Réponse :** "`w:1` acquitte l'écriture dès qu'elle est validée dans le journal du Primaire local. Si le Primaire subit un crash avant de propager l'oplog aux Secondaires, l'écriture est perdue (rollback). `w:majority` n'acquitte l'écriture qu'après confirmation par la majorité des nœuds votants (au moins 2 sur 3), garantissant que l'écriture survivra à toute élection future."

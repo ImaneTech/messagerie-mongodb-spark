@@ -26,8 +26,9 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 
 | Machine | Services / Conteneurs Docker | Rôle & Ports |
 |---|---|---|
-| **Machine A** (Principale) | `mongo1`<br>`mongo2`<br>`spark-master`<br>`spark-worker1`<br>`spark-worker2` (optionnel)<br>Scripts Python & Streamlit | **PRIMARY** (Port 27017, Priorité 2)<br>**SECONDARY** (Port 27018, Priorité 1)<br>Master Spark (Ports 7077, 18080 UI)<br>Worker 1 (2 cœurs, 2 Go, Port 18081)<br>Worker 2 (2 cœurs, 2 Go, Port 18082)<br>Dashboard (Port 8501) |
-| **Machine B** (Secondaire) | `mongo3`<br>`spark-worker2` (cible multi-machines) | **SECONDARY** (Port 27019, Priorité 1)<br>Worker 2 distant (2 cœurs, 2 Go, Port 18082) |
+| **VM1** `192.168.0.100` (Master) | `mongo1`<br>`spark-master`<br>Scripts Python & Streamlit | **PRIMARY** (Port 27017, Priorité 2)<br>Master Spark (Ports 7077, 18080 UI)<br>Dashboard (Port 8501) |
+| **VM2** `192.168.0.101` (Worker 1) | `mongo2`<br>`spark-worker1` | **SECONDARY** (Port 27017, Priorité 1)<br>Worker 1 (2 cœurs, 2 Go, Port 18081) |
+| **VM3** `192.168.0.102` (Worker 2) | `mongo3`<br>`spark-worker2` | **SECONDARY** (Port 27017, Priorité 1)<br>Worker 2 (2 cœurs, 2 Go, Port 18082) |
 
 - **Chaîne d'exécution :** Générateur Python (Faker) ➔ MongoDB (`chatdb`) ➔ Connecteur Spark-MongoDB ➔ Pipeline PySpark ➔ Collections `stats_...` ➔ Dashboard Streamlit.
 - **Versions :** MongoDB 7.0, Spark `3.5.3-python3`, Connecteur `mongo-spark-connector_2.12:10.3.0`, Python 3.10+.
@@ -76,10 +77,13 @@ messagerie-mongodb-spark/
 ├── data_generator/          # Génération par lots (Faker) et injection BSON
 │   ├── generate_data.py
 │   └── load_data.py
-├── machine-a/               # Orchestration Docker Compose (Nœuds A + Cluster Spark)
+├── machine-a/               # Orchestration Docker Compose VM1 (mongo1 + spark-master)
 │   ├── docker-compose.yml
 │   └── .env.example
-├── machine-b/               # Orchestration Docker Compose (Nœud MongoDB B)
+├── machine-b/               # Orchestration Docker Compose VM2 (mongo2 + spark-worker1)
+│   ├── docker-compose.yml
+│   └── .env.example
+├── machine-c/               # Orchestration Docker Compose VM3 (mongo3 + spark-worker2)
 │   ├── docker-compose.yml
 │   └── .env.example
 ├── queries/                 # Implémentation PyMongo des requêtes T01-T15 et A16-A25
@@ -104,7 +108,7 @@ messagerie-mongodb-spark/
 
 ## 4. Prérequis Système
 
-- **2 Machines Virtuelles Ubuntu** (22.04 ou 24.04 LTS) configurées avec des adresses IP fixes sur le même sous-réseau local (cartes réseau configurées en mode **Pont / Bridged**).
+- **3 Machines Virtuelles Ubuntu** (22.04 ou 24.04 LTS) configurées avec les adresses IP fixes `192.168.0.100`, `192.168.0.101` et `192.168.0.102` sur le même sous-réseau local (cartes réseau configurées en mode **Pont / Bridged**).
 - **Docker Engine officiel Linux** avec le plugin Docker Compose v2 (`docker-ce`, `docker-compose-plugin`).
 - Utilisateur membre du groupe docker (`sudo usermod -aG docker $USER`).
 - **Python 3.10+** avec environnement virtuel (`python3-venv`).
@@ -114,7 +118,7 @@ messagerie-mongodb-spark/
 
 ## 5. Installation et Lancement
 
-### 5.1 Déploiement Machine A (Hôte Principal)
+### 5.1 Déploiement VM1 `192.168.0.100` (Master)
 
 ```bash
 git clone https://github.com/votre-repo/messagerie-mongodb-spark.git
@@ -124,36 +128,47 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-cd machine-a
-docker compose up -d
+# Aucun fichier .env n'est requis : config/settings.py utilise les IPs fixes par défaut.
+./scripts/cluster_up.sh a
+# ou : cd machine-a && docker compose up -d
 ```
 
 <p align="center">
   <img src="./screenshots/docker_compose_machine_a.png" width="100%" alt="Docker Compose Machine A — conteneurs démarrés" />
 </p>
 
-### 5.2 Déploiement Machine B (Nœud Secondaire)
+### 5.2 Déploiement VM2 `192.168.0.101` (Worker 1)
 
 ```bash
-cd messagerie-mongodb-spark/machine-b
-# Configurer l'adresse IP de Machine A dans le fichier .env
-docker compose up -d
+cd messagerie-mongodb-spark
+./scripts/cluster_up.sh b
+# ou : cd machine-b && docker compose up -d
 ```
 
-Vérification de la connectivité réseau inter-machines (depuis Machine A) :
+### 5.3 Déploiement VM3 `192.168.0.102` (Worker 2)
 
 ```bash
-nc -zv <IP_MACHINE_A> 27017   # mongo1
-nc -zv <IP_MACHINE_B> 27019   # mongo3 (ou 27017 selon config)
+cd messagerie-mongodb-spark
+./scripts/cluster_up.sh c
+# ou : cd machine-c && docker compose up -d
 ```
 
-### 5.3 Initialisation & Validation du Cluster
+Vérification de la connectivité réseau inter-machines (depuis VM1) :
 
-Pour initialiser le Replica Set avec les priorités spécifiées (`mongo1` en priorité 2) :
+```bash
+nc -zv 192.168.0.100 27017   # mongo1
+nc -zv 192.168.0.101 27017   # mongo2
+nc -zv 192.168.0.102 27017   # mongo3
+nc -zv 192.168.0.100 7077    # spark-master
+```
+
+### 5.4 Initialisation & Validation du Cluster
+
+Une fois les 3 VMs démarrées, initialiser le Replica Set avec les priorités spécifiées (`mongo1` en priorité 2) :
 
 ```bash
 python scripts/init_replica_set.py
-# Ou via mongosh direct :
+# Ou via mongosh direct sur VM1 :
 # docker exec -i mongo1 mongosh --quiet < scripts/init_replica_set.js
 ```
 
@@ -177,7 +192,7 @@ Résultat attendu : **1 PRIMARY et 2 SECONDARY**.
   <img src="./screenshots/replica_set_status.png" width="100%" alt="Statut Replica Set — 1 PRIMARY + 2 SECONDARY" />
 </p>
 
-- **Spark Master UI :** `http://<IP_MACHINE_A>:18080` — les 2 workers doivent être `ALIVE`.
+- **Spark Master UI :** `http://192.168.0.100:18080` — les 2 workers doivent être `ALIVE`.
 
 <p align="center">
   <img src="./screenshots/spark_master_ui.png" width="100%" alt="Spark Master UI — 2 workers ALIVE" />
@@ -256,14 +271,15 @@ Les jobs se trouvent dans `spark/jobs/` et écrivent leurs résultats dans des c
 
 ### Soumission d'un Job
 
+Depuis VM1 (là où `spark-master` est hébergé) :
+
 ```bash
-docker exec -it spark-master /opt/spark/bin/spark-submit \
-  --master spark://spark-master:7077 \
-  --conf spark.jars.ivy=/tmp/.ivy2 \
-  --packages org.mongodb.spark:mongo-spark-connector_2.12:10.3.0 \
-  --executor-memory 1g --total-executor-cores 4 \
-  /opt/spark-jobs/jobs/s28_spam_detection.py
+./benchmarks/run_spark_job.sh s28_spam_detection
+# ou sous Windows/PowerShell :
+# .\benchmarks\run_spark_job.ps1 s28_spam_detection
 ```
+
+Le script utilise `spark://192.168.0.100:7077` comme master et `192.168.0.100` comme `spark.driver.host`, puis exécute `/workspace/spark/jobs/<job>.py` dans le conteneur `spark-master`.
 
 | ID | Job Spark | Algorithme |
 |---|---|---|
@@ -328,7 +344,7 @@ docker start mongo1  # réintègre le cluster en tant que SECONDARY
 streamlit run dashboard/app.py
 ```
 
-Accessible à `http://localhost:8501` ou `http://<IP_MACHINE_A>:8501`
+Accessible à `http://localhost:8501` ou `http://192.168.0.100:8501`
 
 ### Vue d'ensemble — KPIs et messages par jour (A16)
 
@@ -403,10 +419,10 @@ Accessible à `http://localhost:8501` ou `http://<IP_MACHINE_A>:8501`
 | Problème | Cause Possible | Solution |
 |---|---|---|
 | `permission denied while trying to connect to the Docker daemon socket` | L'utilisateur n'est pas dans le groupe `docker` sous Ubuntu | Exécuter `sudo usermod -aG docker $USER` puis recharger la session avec `newgrp docker` ou se reconnecter |
-| `Spark Master UI : Alive Workers: 0` | Master Spark redémarré ou workers déconnectés après inactivité | Exécuter `docker restart spark-worker1 spark-worker2` pour forcer le ré-enregistrement immédiat auprès du Master |
+| `Spark Master UI : Alive Workers: 0` | Master Spark redémarré ou workers déconnectés après inactivité | Exécuter `docker restart spark-worker1` sur VM2 et `docker restart spark-worker2` sur VM3 pour forcer le ré-enregistrement immédiat auprès du Master |
 | `Address already in use` sous Linux | Un service `mongod` ou autre processus tourne déjà sur le port local | Identifier le processus avec `sudo ss -tulpn \| grep :27017` et l'arrêter (`sudo systemctl stop mongod`) |
-| `mongo3` absent ou `Host unreachable` | Pare-feu UFW bloquant ou VM non accessible en mode Pont | Vérifier les règles UFW (`sudo ufw allow 27019/tcp` sur B) et tester via `nc -zv <IP_MACHINE_B> 27019` |
-| `Initial job has not accepted any resources` | Workers Spark sans ressources disponibles ou occupés | Vérifier dans `http://<IP_MACHINE_A>:18080` que les workers sont `ALIVE` et ajuster `--executor-memory 1g` |
+| `mongo3` absent ou `Host unreachable` | Pare-feu UFW bloquant ou VM non accessible en mode Pont | Vérifier les règles UFW (`sudo ufw allow 27017/tcp` sur VM3) et tester via `nc -zv 192.168.0.102 27017` |
+| `Initial job has not accepted any resources` | Workers Spark sans ressources disponibles ou occupés | Vérifier dans `http://192.168.0.100:18080` que les workers sont `ALIVE` et ajuster `--executor-memory 1g` |
 | `ClassNotFoundException: MongoTableProvider` | Incompatibilité de version Scala avec Spark 3.5 | Utiliser impérativement le connecteur Scala 2.12 : `org.mongodb.spark:mongo-spark-connector_2.12:10.3.0` |
 | Reprise après coupure de courant / arrêt brutal | Inversion de l'ordre de démarrage (Guide §4.8) | Exécuter `./scripts/restart_after_powercut.sh` pour démarrer les bases d'abord, attendre le quorum, puis Spark |
 | Dashboard sans données Spark | Jobs S26-S30 non exécutés | Lancer les jobs via `python benchmarks/run_all.py --with-spark` ou vérifier les collections `stats_*` dans MongoDB |

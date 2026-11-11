@@ -14,17 +14,17 @@ const config = {
   members: [
     {
       _id: 0,
-      host: "mongo1:27017",
+      host: "192.168.0.100:27017",
       priority: 2 // Priorité supérieure pour forcer mongo1 en Primaire
     },
     {
       _id: 1,
-      host: "mongo2:27018",
+      host: "192.168.0.101:27017",
       priority: 1
     },
     {
       _id: 2,
-      host: "mongo3:27019",
+      host: "192.168.0.102:27017",
       priority: 1
     }
   ]
@@ -51,9 +51,9 @@ try {
 let attempts = 0;
 while (attempts < 30) {
   try {
-    const isMaster = db.isMaster();
-    if (isMaster.ismaster || isMaster.primary) {
-      print("[OK] Primaire actif : " + isMaster.primary);
+    const hello = db.hello();
+    if (hello.isWritablePrimary) {
+      print("[OK] Primaire actif : " + hello.primary);
       break;
     }
   } catch (err) {}

@@ -17,16 +17,27 @@ RESULTS_DIR = os.path.join(WORKDIR, "benchmarks", "results")
 
 
 # ---------------------------------------------------------------------------
+# Connexion MongoDB partagée
+# ---------------------------------------------------------------------------
+
+@st.cache_resource
+def get_client():
+    return MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+
+
+def get_db():
+    return get_client()[MONGO_DB]
+
+
+# ---------------------------------------------------------------------------
 # Fonctions de chargement des données
 # ---------------------------------------------------------------------------
 
 @st.cache_data(ttl=60)
 def get_counts():
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        db = client[MONGO_DB]
+        db = get_db()
         result = {col: db[COLLECTIONS[col]].count_documents({}) for col in COLLECTIONS}
-        client.close()
         return result
     except Exception as e:
         st.error(f"Erreur de connexion MongoDB: {e}")
@@ -36,8 +47,7 @@ def get_counts():
 @st.cache_data(ttl=60)
 def get_messages_per_day():
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        db = client[MONGO_DB]
+        db = get_db()
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         start_30d = now - timedelta(days=30)
         pipeline = [
@@ -53,7 +63,6 @@ def get_messages_per_day():
             {"$sort": {"_id": 1}},
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
-        client.close()
         return docs
     except Exception as e:
         st.error(f"Erreur de connexion MongoDB: {e}")
@@ -63,14 +72,12 @@ def get_messages_per_day():
 @st.cache_data(ttl=60)
 def get_messages_by_type():
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        db = client[MONGO_DB]
+        db = get_db()
         pipeline = [
             {"$group": {"_id": "$type", "total": {"$sum": 1}}},
             {"$sort": {"total": -1}},
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
-        client.close()
         return docs
     except Exception as e:
         st.error(f"Erreur de connexion MongoDB: {e}")
@@ -80,14 +87,12 @@ def get_messages_by_type():
 @st.cache_data(ttl=60)
 def get_messages_by_hour():
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        db = client[MONGO_DB]
+        db = get_db()
         pipeline = [
             {"$group": {"_id": {"$hour": "$ts"}, "total": {"$sum": 1}}},
             {"$sort": {"_id": 1}},
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
-        client.close()
         return docs
     except Exception as e:
         st.error(f"Erreur de connexion MongoDB: {e}")
@@ -97,15 +102,13 @@ def get_messages_by_hour():
 @st.cache_data(ttl=60)
 def get_top_users(limit=10):
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        db = client[MONGO_DB]
+        db = get_db()
         pipeline = [
             {"$group": {"_id": "$sender_id", "total": {"$sum": 1}}},
             {"$sort": {"total": -1}},
             {"$limit": limit},
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
-        client.close()
         return docs
     except Exception as e:
         st.error(f"Erreur de connexion MongoDB: {e}")
@@ -115,8 +118,7 @@ def get_top_users(limit=10):
 @st.cache_data(ttl=60)
 def get_reports_by_reason_status():
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        db = client[MONGO_DB]
+        db = get_db()
         pipeline = [
             {
                 "$group": {
@@ -127,7 +129,6 @@ def get_reports_by_reason_status():
             {"$sort": {"total": -1}},
         ]
         docs = list(db[COLLECTIONS["reports"]].aggregate(pipeline))
-        client.close()
         return docs
     except Exception as e:
         st.error(f"Erreur de connexion MongoDB: {e}")
@@ -138,14 +139,11 @@ def get_reports_by_reason_status():
 def get_stats_collection(collection_name, sort_field=None, ascending=True, limit=None):
     """Charge une collection stats_* ; retourne (docs, error_msg)."""
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        db = client[MONGO_DB]
+        db = get_db()
         if collection_name not in db.list_collection_names():
-            client.close()
             return None, "Données non disponibles (job Spark non exécuté)."
         coll = db[collection_name]
         if coll.count_documents({}) == 0:
-            client.close()
             return None, "Données non disponibles (job Spark non exécuté)."
         query = coll.find({}, {"_id": 0})
         if sort_field:
@@ -154,7 +152,6 @@ def get_stats_collection(collection_name, sort_field=None, ascending=True, limit
         if limit:
             query = query.limit(limit)
         docs = list(query)
-        client.close()
         return docs, None
     except Exception as e:
         return None, f"Erreur de connexion MongoDB: {e}"
@@ -220,7 +217,7 @@ with tab_vue:
             color_discrete_sequence=["#4C78A8"],
         )
         fig.update_layout(xaxis_tickangle=-45)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
 # ---------------------------------------------------------------------------
 # Page : Usage
@@ -244,7 +241,7 @@ with tab_usage:
             labels={"Type": "Type", "Nombre": "Nombre de messages"},
             color_discrete_sequence=["#72B7B2"],
         )
-        st.plotly_chart(fig_type, use_container_width=True)
+        st.plotly_chart(fig_type)
 
     # A22 — Messages par heure
     st.subheader("Messages par heure de la journée (A22)")
@@ -262,7 +259,7 @@ with tab_usage:
             color_discrete_sequence=["#54A24B"],
         )
         fig_hour.update_xaxes(tickmode="linear", tick0=0, dtick=1)
-        st.plotly_chart(fig_hour, use_container_width=True)
+        st.plotly_chart(fig_hour)
 
     # A17 — Top 10 utilisateurs actifs
     st.subheader("Top 10 utilisateurs actifs (A17)")
@@ -274,7 +271,7 @@ with tab_usage:
             columns={"_id": "Identifiant utilisateur", "total": "Nombre de messages"}
         )
         df_users["Identifiant utilisateur"] = df_users["Identifiant utilisateur"].astype(str)
-        st.dataframe(df_users, use_container_width=True, hide_index=True)
+        st.dataframe(df_users, hide_index=True)
 
 # ---------------------------------------------------------------------------
 # Page : Abus et modération
@@ -307,7 +304,7 @@ with tab_abus:
             title="Signalements par motif et statut",
             labels={"Motif": "Motif", "Nombre": "Nombre", "Statut": "Statut"},
         )
-        st.plotly_chart(fig_rep, use_container_width=True)
+        st.plotly_chart(fig_rep)
 
     # stats_s29 — Top 20 taux de signalement
     st.subheader("Top 20 taux de signalement (stats_s29)")
@@ -318,7 +315,7 @@ with tab_abus:
         df_s29 = pd.DataFrame(docs_s29)
         if "_id" in df_s29.columns:
             df_s29 = df_s29.drop(columns=["_id"])
-        st.dataframe(df_s29, use_container_width=True, hide_index=True)
+        st.dataframe(df_s29, hide_index=True)
 
     # stats_s28 — Spam senders
     st.subheader("Expéditeurs de spam (stats_s28)")
@@ -329,7 +326,7 @@ with tab_abus:
         df_s28 = pd.DataFrame(docs_s28)
         if "_id" in df_s28.columns:
             df_s28 = df_s28.drop(columns=["_id"])
-        st.dataframe(df_s28, use_container_width=True, hide_index=True)
+        st.dataframe(df_s28, hide_index=True)
 
 # ---------------------------------------------------------------------------
 # Page : Engagement
@@ -368,9 +365,9 @@ with tab_engagement:
                 labels={cohort_col: "Cohorte", retain_col: "Taux de rétention"},
                 color_discrete_sequence=["#E45756"],
             )
-            st.plotly_chart(fig_s30, use_container_width=True)
+            st.plotly_chart(fig_s30)
         else:
-            st.dataframe(df_s30, use_container_width=True, hide_index=True)
+            st.dataframe(df_s30, hide_index=True)
 
     # stats_s26 — Temps de réponse top 20
     st.subheader("Temps de réponse — top 20 (stats_s26)")
@@ -381,7 +378,7 @@ with tab_engagement:
         df_s26 = pd.DataFrame(docs_s26)
         if "_id" in df_s26.columns:
             df_s26 = df_s26.drop(columns=["_id"])
-        st.dataframe(df_s26, use_container_width=True, hide_index=True)
+        st.dataframe(df_s26, hide_index=True)
 
 # ---------------------------------------------------------------------------
 # Page : Performance
@@ -406,7 +403,7 @@ with tab_perf:
             barmode="group",
         )
         fig_all.update_xaxes(tickangle=-45)
-        st.plotly_chart(fig_all, use_container_width=True)
+        st.plotly_chart(fig_all)
 
     # native_vs_spark.csv
     st.subheader("Comparaison natif / Spark (native_vs_spark.csv)")
@@ -432,7 +429,7 @@ with tab_perf:
             title="Natif vs Spark — A16, A17, A18",
             labels={"query_id": "Requête"},
         )
-        st.plotly_chart(fig_nvs, use_container_width=True)
+        st.plotly_chart(fig_nvs)
 
     # index_test.csv
     st.subheader("Test des index — T4 et T6 (index_test.csv)")
@@ -440,7 +437,7 @@ with tab_perf:
     if err_idx:
         st.info(err_idx)
     else:
-        st.dataframe(df_idx, use_container_width=True, hide_index=True)
+        st.dataframe(df_idx, hide_index=True)
 
         fig_idx = px.bar(
             df_idx,
@@ -451,7 +448,7 @@ with tab_perf:
             title="Avec index vs sans index",
             labels={"query_id": "Requête", "avg_ms": "Temps moyen (ms)", "mode": "Mode"},
         )
-        st.plotly_chart(fig_idx, use_container_width=True)
+        st.plotly_chart(fig_idx)
 
     # consistency_test.csv
     st.subheader("Test de cohérence — write concern et read concern (consistency_test.csv)")
@@ -462,7 +459,7 @@ with tab_perf:
         st.caption(
             "Note : les résultats devront être recalculés quand mongo3 (machine B) sera de nouveau en ligne."
         )
-        st.dataframe(df_cons, use_container_width=True, hide_index=True)
+        st.dataframe(df_cons, hide_index=True)
 
         fig_cons = px.bar(
             df_cons,
@@ -477,4 +474,4 @@ with tab_perf:
                 "setting": "Paramètre",
             },
         )
-        st.plotly_chart(fig_cons, use_container_width=True)
+        st.plotly_chart(fig_cons)
