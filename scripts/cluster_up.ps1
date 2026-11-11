@@ -1,17 +1,34 @@
 # scripts/cluster_up.ps1
-# Démarrage ordonné de l'infrastructure multi-machines (PowerShell)
+# Démarrage des services locaux d'une VM du cluster 3 machines.
+# Usage : .\scripts\cluster_up.ps1 -Role <a|b|c>
 
-Write-Host "=== 1. Démarrage des nœuds MongoDB (Machine A) ===" -ForegroundColor Cyan
-Set-Location "$PSScriptRoot\..\machine-a"
-docker compose up -d mongo1 mongo2
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$Role
+)
 
-Write-Host "Attente de la disponibilité de mongo1 et mongo2 (5s)..."
-Start-Sleep -Seconds 5
+$ErrorActionPreference = "Stop"
+$RootDir = Resolve-Path "$PSScriptRoot\.."
+Set-Location $RootDir
+$normalizedRole = $Role.ToLower()
 
-Write-Host "=== 2. Démarrage de Spark Master et Workers ===" -ForegroundColor Cyan
-docker compose up -d spark-master spark-worker1 spark-worker2
+if ($normalizedRole -in @("a", "vm1", "machine-a")) {
+    $composeDir = "machine-a"
+    $services = @("mongo1", "spark-master")
+} elseif ($normalizedRole -in @("b", "vm2", "machine-b")) {
+    $composeDir = "machine-b"
+    $services = @("mongo2", "spark-worker1")
+} elseif ($normalizedRole -in @("c", "vm3", "machine-c")) {
+    $composeDir = "machine-c"
+    $services = @("mongo3", "spark-worker2")
+} else {
+    Write-Error "Usage: $PSCommandPath -Role <a|b|c>"
+    exit 1
+}
 
-Write-Host "=== 3. Vérification de l'état du cluster ===" -ForegroundColor Cyan
-Set-Location "$PSScriptRoot\.."
-python scripts\check_cluster.py
+Write-Host "=== Démarrage des services $($services -join ', ') sur $composeDir ===" -ForegroundColor Cyan
+docker compose -f "$composeDir/docker-compose.yml" up -d @services
 
+Write-Host "[OK] Services démarrés. Après le démarrage des 3 VMs :" -ForegroundColor Green
+Write-Host "  1. Sur VM1 : python scripts/init_replica_set.py"
+Write-Host "  2. Partout : python scripts/check_cluster.py"

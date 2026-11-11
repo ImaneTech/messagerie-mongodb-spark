@@ -1,23 +1,43 @@
 #!/usr/bin/env bash
 # scripts/cluster_up.sh
-# Démarrage ordonné de l'infrastructure multi-machines (Guide §4.8)
+# Démarrage des services locaux d'une VM du cluster 3 machines.
+# Usage : ./scripts/cluster_up.sh <a|b|c>   (a=VM1, b=VM2, c=VM3)
 
-echo "=== 1. Démarrage des nœuds de données MongoDB ==="
-cd "$(dirname "$0")/../machine-a" || exit 1
-docker compose up -d mongo1 mongo2
+set -euo pipefail
 
-echo "Attente de la disponibilité de mongo1 et mongo2..."
-sleep 5
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROLE="${1:-}"
 
-echo "=== 2. Démarrage de Spark Master et Worker 1 sur Machine A ==="
-docker compose up -d spark-master spark-worker1
+usage() {
+    echo "Usage: $0 <a|b|c>"
+    echo "  a / vm1   -> machine-a : mongo1 + spark-master"
+    echo "  b / vm2   -> machine-b : mongo2 + spark-worker1"
+    echo "  c / vm3   -> machine-c : mongo3 + spark-worker2"
+}
 
-# Optionnel : si le worker 2 est configuré sur Machine A (mode standalone complet)
-if docker compose config | grep -q "spark-worker2"; then
-  docker compose up -d spark-worker2
-fi
+case "$ROLE" in
+    a|vm1|machine-a)
+        COMPOSE_DIR="machine-a"
+        SERVICES=(mongo1 spark-master)
+        ;;
+    b|vm2|machine-b)
+        COMPOSE_DIR="machine-b"
+        SERVICES=(mongo2 spark-worker1)
+        ;;
+    c|vm3|machine-c)
+        COMPOSE_DIR="machine-c"
+        SERVICES=(mongo3 spark-worker2)
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+esac
 
-echo "=== 3. Vérification de l'état du cluster ==="
-cd ..
-python3 scripts/check_cluster.py
+cd "$ROOT_DIR"
+echo "=== Démarrage des services ${SERVICES[*]} sur ${COMPOSE_DIR} ==="
+docker compose -f "$COMPOSE_DIR/docker-compose.yml" up -d "${SERVICES[@]}"
 
+echo "[OK] Services démarrés. Après le démarrage des 3 VMs :"
+echo "  1. Sur VM1 : python scripts/init_replica_set.py"
+echo "  2. Partout : python scripts/check_cluster.py"

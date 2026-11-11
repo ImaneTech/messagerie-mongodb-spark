@@ -1,14 +1,20 @@
 # REPO_MAP — messagerie-mongodb-spark
 
+> **Configuration cible actuelle** : la refactorisation 3-VM utilise
+> `192.168.0.100`, `192.168.0.101` et `192.168.0.102`, avec un membre MongoDB
+> et un service Spark dédiés par VM. Les notes historiques ci-dessous décrivent
+> l'état observé avant cette refactorisation.
+
 Audit Phase 0 (read-only). Date: 2026-11-10. Machine d'audit : Windows (poste de dev d'Emma) — Docker Desktop arrêté, cluster non joignable depuis cet environnement.
 
 ## Arborescence
 
 | Chemin | Rôle | État |
 |---|---|---|
-| `config/settings.py` | `MONGO_URI`, `MONGO_DB`, `COLLECTIONS` | OK mais URI pointe sur noms de services Docker (`mongo1:27017,mongo2:27018,mongo3:27019`) — voir AUDIT |
-| `machine-a/docker-compose.yml` | mongo1 (27017), mongo2 (27018), spark-master, spark-worker1, spark-worker2 — réseau **bridge** `chat_net` | Worker2 est sur machine A, pas sur B |
-| `machine-b/docker-compose.yml` | mongo3 seul, port **27019**, réseau bridge | Port non standard vs guide (27017) |
+| `config/settings.py` | `MONGO_URI`, `MONGO_DB`, `COLLECTIONS` | URI par défaut vers les 3 IPs fixes et `chatdb`; `.env` facultatif |
+| `machine-a/docker-compose.yml` | mongo1 (27017), spark-master — réseau **bridge** `chat_net` | VM1 / master |
+| `machine-b/docker-compose.yml` | mongo2 (27017), spark-worker1 — réseau **bridge** `chat_net` | VM2 / worker 1 |
+| `machine-c/docker-compose.yml` | mongo3 (27017), spark-worker2 — réseau **bridge** `chat_net` | VM3 / worker 2 |
 | `machine-a/.env`, `machine-b/.env`, `.env` | IPs `192.168.0.178` (A) / `192.168.0.195` (B) — **réseau 192.168.0.0/24, pas 192.168.1.x du guide** | OK (IP fixes supposées) |
 | `data_generator/generate_data.py` | Générateur Faker, seed=42, users/conversations/messages/read_status/reports + injections S26/S27/S28/S30 | Complet, voir écarts de schéma dans AUDIT |
 | `data_generator/load_data.py` | Orchestration génération + `insert_many` par lots de 5000 + `create_indexes()` | OK |
@@ -33,7 +39,7 @@ Audit Phase 0 (read-only). Date: 2026-11-10. Machine d'audit : Windows (poste de
 | `.gitignore` | `.env`, `.venv`, `benchmarks/results/`, `data/` | OK ; `benchmarks/results/` ignoré → les CSV de preuves ne sont PAS versionnés |
 | `requirements.txt` | pymongo 4.19, Faker 40.44, pyspark 3.5.1, streamlit 1.66.1, pandas 3.1, plotly | pyspark 3.5.1 vs Spark 3.5.3 du cluster — mineur |
 
-## Topologie réelle (d'après le code)
+## Topologie historique (avant la refactorisation)
 
 - **Réseau Docker : bridge** (`chat_net`), PAS host network comme le guide (§4.1). Conséquence : les conteneurs sont joints par noms de service (`mongo1`, `spark-master`), pas par IP:port de l'hôte ; mongo3 écoute sur **27019** (mongo1=27017, mongo2=27018 pour éviter les collisions… sur la même machine seulement ; mongo3 aurait pu être 27017).
 - **Spark : master + worker1 + worker2 tous sur machine A.** Machine B n'héberge que mongo3. Le layout visé par Emma (worker2 sur B) n'est PAS celui configuré.

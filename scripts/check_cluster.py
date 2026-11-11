@@ -5,13 +5,17 @@ Vérification d'état complet de l'infrastructure multi-machines :
 2. État du cluster Apache Spark (Master ALIVE, nombre de Workers connectés, cœurs et RAM).
 """
 
+import json
+import os
 import sys
 import urllib.request
-import json
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from config.settings import MONGO_URI, MONGO_DB
+from config.settings import IP_A, MONGO_URI
 
 
 def check_mongodb():
@@ -52,7 +56,7 @@ def check_spark():
     print("\n" + "=" * 60)
     print("2. VÉRIFICATION DU CLUSTER APACHE SPARK")
     print("=" * 60)
-    url = "http://localhost:18080/json/"
+    url = f"http://{IP_A}:18080/json/"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=3) as resp:

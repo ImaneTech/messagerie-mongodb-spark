@@ -15,18 +15,27 @@ Protocole expérimental :
 
 import argparse
 import csv
+import os
 import subprocess
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from config.settings import MONGO_DB, MONGO_URI
+from config.settings import IP_A, IP_B, IP_C, MONGO_DB, MONGO_URI
 
-# Services Docker internes pour les connexions directes
-MEMBERS = {"mongo1": ("mongo1", 27017), "mongo2": ("mongo2", 27018), "mongo3": ("mongo3", 27019)}
+# Adresses IP des membres du Replica Set (toutes sur le port 27017).
+# À exécuter sur VM1 : les commandes docker stop/start ciblent mongo1 localement.
+MEMBERS = {
+    "mongo1": (IP_A, 27017),
+    "mongo2": (IP_B, 27017),
+    "mongo3": (IP_C, 27017),
+}
 RESULTS = Path("benchmarks/results/failover_test.csv")
 
 

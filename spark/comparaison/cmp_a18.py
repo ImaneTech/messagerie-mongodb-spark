@@ -1,24 +1,18 @@
 """Version Spark de A18 pour comparaison de performances avec MongoDB natif."""
 
 import os
+import sys
 import time
 
-from pyspark.sql import SparkSession
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from pyspark.sql import functions as F
 
-# URI injectée par docker exec -e MONGO_URI
-MONGO_URI = os.environ["MONGO_URI"]
+from spark.spark_session import get_spark_session
 
 # --- Initialisation de la Session Spark ---
 t_session_start = time.time()
-spark = (
-    SparkSession.builder.appName("CMP_A18_MessagesByType")
-    .config("spark.mongodb.read.connection.uri", MONGO_URI)
-    .config("spark.mongodb.write.connection.uri", MONGO_URI)
-    .config("spark.mongodb.read.database", "chatdb")
-    .config("spark.mongodb.write.database", "chatdb")
-    .getOrCreate()
-)
+spark = get_spark_session("CMP_A18_MessagesByType")
 t_session_ms = (time.time() - t_session_start) * 1000
 print(f"SPARK_SESSION_MS={t_session_ms:.0f}")
 

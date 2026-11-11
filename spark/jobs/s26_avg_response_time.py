@@ -6,11 +6,9 @@ import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from config.settings import MONGO_DB, MONGO_URI
 from spark.spark_session import get_spark_session
 
 MAX_GAP_SECONDS = 3600

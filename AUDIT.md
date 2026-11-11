@@ -4,6 +4,12 @@ Date : 2026-11-10 — Phase 1, lecture seule. Légende : ✅ OK · 🟡 partiel 
 
 > ⚠️ Avertissement méthodologique : le cluster n'est pas joignable depuis cette machine (Docker Desktop arrêté, machine B injoignable). Les statuts « OK » ci-dessous signifient *implémenté dans le code* ; les mesures réelles restent à re-valider par Emma (commandes fournies en Phase 6).
 
+> **Mise à jour de configuration** : les fichiers d'exécution ont depuis été
+> alignés sur le cluster cible à trois VMs (`192.168.0.100` à `.102`).
+> Chaque VM expose son membre MongoDB sur le port `27017`; `machine-c` contient
+> désormais `mongo3` et `spark-worker2`. Les constats historiques de ce document
+> restent conservés comme trace de l'audit initial.
+
 ---
 
 ## 1. Données (exigence 3.2)

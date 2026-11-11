@@ -124,7 +124,10 @@ def generate_conversations(users, num_groups=200, num_direct=7800, seed=42):
     for i in range(num_groups):
         conv_id = f"conv_g_{uuid.uuid4().hex[:10]}"
         # Au moins 7 groupes de > 50 participants (pour A20)
-        count = random.randint(52, min(75, len(users))) if i < 7 else random.randint(3, 40)
+        if i < 7 and len(user_ids) >= 52:
+            count = random.randint(52, min(75, len(user_ids)))
+        else:
+            count = random.randint(1, min(40, len(user_ids)))
         group_members = random.sample(user_ids, count)
         participants = [{"user_id": group_members[0], "role": "admin"}]
         for m in group_members[1:]:
@@ -460,8 +463,12 @@ def generate_all(num_users=10000, num_groups=200, num_direct=7800, target_messag
     }
 
 
-if __name__ == "__main__":
+def main():
     data = generate_all()
     print("Génération réussie :")
     for k, v in data.items():
         print(f" - {k}: {len(v)} documents")
+
+
+if __name__ == "__main__":
+    main()

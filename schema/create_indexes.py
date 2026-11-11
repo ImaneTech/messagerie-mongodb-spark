@@ -1,5 +1,10 @@
 """Création idempotente des index B-Tree, uniques et TTL sur MongoDB."""
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
 

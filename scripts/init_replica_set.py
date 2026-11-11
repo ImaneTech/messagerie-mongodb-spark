@@ -4,31 +4,37 @@ Initialisation et vérification du Replica Set rs0 depuis Python (PyMongo).
 Applique la priorité 2 à mongo1 pour garantir son statut de Primaire.
 """
 
+import os
 import sys
 import time
-import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+
+from config.settings import IP_A, IP_B, IP_C
 
 
 def init_replica_set():
     print("Connexion au cluster MongoDB...")
     try:
         # Connexion directe à mongo1 pour l'initialisation.
-        client = MongoClient("mongodb://127.0.0.1:27017/?directConnection=true", serverSelectionTimeoutMS=5000)
+        client = MongoClient(
+            f"mongodb://{IP_A}:27017/?directConnection=true",
+            serverSelectionTimeoutMS=5000,
+        )
         admin = client.admin
     except Exception as e:
         print(f"[ERREUR] Impossible de joindre mongo1 en direct : {e}")
         return False
 
-    ip_a = os.getenv("IP_A", "127.0.0.1")
-    ip_b = os.getenv("IP_B", "127.0.0.1")
     config = {
         "_id": "rs0",
         "members": [
-            {"_id": 0, "host": f"{ip_a}:27017", "priority": 2},
-            {"_id": 1, "host": f"{ip_a}:27018", "priority": 1},
-            {"_id": 2, "host": f"{ip_b}:27019", "priority": 1},
+            {"_id": 0, "host": f"{IP_A}:27017", "priority": 2},
+            {"_id": 1, "host": f"{IP_B}:27017", "priority": 1},
+            {"_id": 2, "host": f"{IP_C}:27017", "priority": 1},
         ],
     }
 

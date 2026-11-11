@@ -1,13 +1,10 @@
 services:
-  mongo3:
+  mongo2:
     image: mongo:7
-    container_name: mongo3
-    command: mongod --replSet rs0 --bind_ip_all --port 27019
-    ports: ["27019:27019"]
-    volumes: [mongo3-data:/data/db]
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin123
+    container_name: mongo2
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    ports: ["27017:27017"]
+    volumes: [mongo2-data:/data/db]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
@@ -17,17 +14,18 @@ services:
     networks:
       - chat_net
 
-  spark-worker2:
+  spark-worker1:
     image: apache/spark:3.5.3-python3
-    container_name: spark-worker2
-    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://${IP_A}:7077
+    container_name: spark-worker1
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://192.168.0.100:7077
     environment:
-      SPARK_PUBLIC_DNS: ${IP_B}
+      SPARK_PUBLIC_DNS: 192.168.0.101
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
-      MONGO_URI: mongodb://${IP_A}:27017,${IP_A}:27018,${IP_B}:27019/?replicaSet=rs0&readPreference=primaryPreferred
+      MONGO_URI: mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/chatdb?replicaSet=rs0&readPreference=primaryPreferred
+      MONGO_DB: chatdb
     ports:
-      - "18082:8081"
+      - "18081:8081"
     restart: unless-stopped
     networks:
       - chat_net
@@ -37,5 +35,4 @@ networks:
     driver: bridge
 
 volumes:
-  mongo3-data:
-    name: pc-b_mongo3-data
+  mongo2-data:
