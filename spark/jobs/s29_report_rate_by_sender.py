@@ -6,29 +6,18 @@ import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-HOSTS = "192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017"
-URI_MSGS = f"mongodb://{HOSTS}/chatdb.messages?replicaSet=rs0"
-URI_REPORTS = f"mongodb://{HOSTS}/chatdb.reports?replicaSet=rs0"
-URI_STATS = f"mongodb://{HOSTS}/chatdb.stats_s29?replicaSet=rs0"
+from spark.spark_session import get_spark_session
 
-spark = (
-    SparkSession.builder
-    .appName("S29_ReportRateBySender")
-    .config("spark.mongodb.input.uri", URI_MSGS)
-    .config("spark.mongodb.output.uri", URI_STATS)
-    .getOrCreate()
-)
-spark.sparkContext.setLogLevel("ERROR")
+spark = get_spark_session("S29_ReportRateBySender")
 
 # 1. Chargement de la collection messages
-msgs_df = spark.read.format("mongo").option("uri", URI_MSGS).load()
+msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
 msgs_df = msgs_df.select(F.col("_id").alias("message_id"), "sender_id")
 
 # 2. Chargement de la collection reports
-reports_df = spark.read.format("mongo").option("uri", URI_REPORTS).load()
+reports_df = spark.read.format("mongodb").option("collection", "reports").load()
 reports_df = reports_df.select("message_id").withColumnRenamed("message_id", "rep_message_id")
 
 # 3. Calcul du nombre de messages envoyés par émetteur
@@ -64,7 +53,7 @@ result.show()
 
 # 7. Sauvegarde des résultats d'audit dans stats_s29
 start_write = time.time()
-result.write.format("mongo").option("uri", URI_STATS).mode("overwrite").save()
+result.write.format("mongodb").option("collection", "stats_s29").mode("overwrite").save()
 duration_ms = (time.time() - start_write) * 1000
 print(f"WRITE_MS={duration_ms:.0f}")
 
