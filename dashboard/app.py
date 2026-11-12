@@ -12,8 +12,13 @@ from config.settings import MONGO_URI, MONGO_DB, COLLECTIONS
 
 st.set_page_config(page_title="Messagerie — Tableau de bord", layout="wide")
 
-WORKDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-RESULTS_DIR = os.path.join(WORKDIR, "benchmarks", "results")
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+RESULTS_DIR = os.path.join(PROJECT_ROOT, "benchmarks", "results")
+CSV_SEARCH_PATHS = (
+    RESULTS_DIR,
+    PROJECT_ROOT,
+    os.path.dirname(__file__),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -158,15 +163,25 @@ def get_stats_collection(collection_name, sort_field=None, ascending=True, limit
 
 
 def load_csv(filename):
-    """Charge un CSV depuis RESULTS_DIR ; retourne (DataFrame, error_msg)."""
-    path = os.path.join(RESULTS_DIR, filename)
-    if not os.path.isfile(path):
-        return None, "Fichier CSV absent. Lancer d'abord les benchmarks."
+    """Charge un CSV depuis les emplacements du projet.
+
+    Les benchmarks écrivent normalement dans ``benchmarks/results``. Les
+    emplacements racine et ``dashboard`` sont conservés comme solutions de
+    repli pour les résultats générés par d'anciennes commandes.
+    """
+    candidate_paths = [os.path.join(directory, filename) for directory in CSV_SEARCH_PATHS]
+    path = next((candidate for candidate in candidate_paths if os.path.isfile(candidate)), None)
+    if path is None:
+        expected_paths = ", ".join(candidate_paths)
+        return None, (
+            f"Fichier CSV absent. Lancez d'abord les benchmarks. "
+            f"Emplacements vérifiés : {expected_paths}"
+        )
     try:
         df = pd.read_csv(path)
         return df, None
-    except Exception as exc:
-        return None, f"Erreur de lecture du CSV : {exc}"
+    except (OSError, pd.errors.ParserError, UnicodeDecodeError) as exc:
+        return None, f"Erreur de lecture du CSV ({path}) : {exc}"
 
 
 # ---------------------------------------------------------------------------
