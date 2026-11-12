@@ -13,21 +13,22 @@ from spark.spark_session import get_spark_session
 
 MAX_GAP_SECONDS = 3600
 
-# URIs avec spécification de la collection et de la base
-URI_CONVS = "mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/messagerie.conversations?replicaSet=rs0"
-URI_MSGS = "mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/messagerie.messages?replicaSet=rs0"
-URI_STATS = "mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/messagerie.stats_s26?replicaSet=rs0"
+# URIs pointant vers la BONNE base 'chatdb'
+DB_NAME = "chatdb"
+HOSTS = "192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017"
+
+URI_CONVS = f"mongodb://{HOSTS}/{DB_NAME}.conversations?replicaSet=rs0"
+URI_MSGS = f"mongodb://{HOSTS}/{DB_NAME}.messages?replicaSet=rs0"
+URI_STATS = f"mongodb://{HOSTS}/{DB_NAME}.stats_s26?replicaSet=rs0"
 
 spark = get_spark_session("S26_AvgResponseTime")
 
-# 1. Lire conversations privées (avec sampleSize pour forcer la détection du schéma NoSQL)
+# 1. Lire conversations privées
 convs_df = (
     spark.read.format("mongo")
     .option("spark.mongodb.input.uri", URI_CONVS)
-    .option("sampleSize", 1000)
     .load()
 )
-
 private_ids = (
     convs_df.filter(F.col("type") == "private").select("_id").withColumnRenamed("_id", "conv_id")
 )
@@ -36,7 +37,6 @@ private_ids = (
 msgs_df = (
     spark.read.format("mongo")
     .option("spark.mongodb.input.uri", URI_MSGS)
-    .option("sampleSize", 1000)
     .load()
 )
 msgs_df = msgs_df.select("_id", "conversation_id", "sender_id", "ts")
@@ -67,7 +67,6 @@ run_times = []
 global_avg = None
 global_median = None
 response_count = None
-per_conv = None
 dist = None
 
 for i in range(3):
@@ -92,14 +91,17 @@ for i in range(3):
 avg_ms = sum(run_times) / len(run_times)
 print(f"MAX_GAP_SECONDS={MAX_GAP_SECONDS}")
 print(f"REPONSES_COMPTEES={response_count}")
-print("DISTRIBUTION (secondes, gap>0 uniquement):")
-print(f"  min    = {dist['min_sec']:.3f}")
-print(f"  p25    = {dist['p25_sec']:.3f}")
-print(f"  median = {dist['p50_sec']:.3f}")
-print(f"  p75    = {dist['p75_sec']:.3f}")
-print(f"  p95    = {dist['p95_sec']:.3f}")
-print(f"  max    = {dist['max_sec']:.3f}")
-print(f"  mean   = {dist['avg_sec']:.3f}")
+
+if dist and dist["nb"] > 0:
+    print("DISTRIBUTION (secondes, gap>0 uniquement):")
+    print(f"  min    = {dist['min_sec']:.3f}")
+    print(f"  p25    = {dist['p25_sec']:.3f}")
+    print(f"  median = {dist['p50_sec']:.3f}")
+    print(f"  p75    = {dist['p75_sec']:.3f}")
+    print(f"  p95    = {dist['p95_sec']:.3f}")
+    print(f"  max    = {dist['max_sec']:.3f}")
+    print(f"  mean   = {dist['avg_sec']:.3f}")
+
 print(f"MOYENNE_SEC={global_avg:.3f}" if global_avg is not None else "MOYENNE_SEC=None")
 print(f"MEDIANE_SEC={global_median:.3f}" if global_median is not None else "MEDIANE_SEC=None")
 print(f"DUREE_MS={avg_ms:.0f}")
