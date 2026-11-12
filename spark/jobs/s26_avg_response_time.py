@@ -15,14 +15,14 @@ MAX_GAP_SECONDS = 3600
 
 spark = get_spark_session("S26_AvgResponseTime")
 
-# Lire conversations privées
-convs_df = spark.read.format("mongodb").option("collection", "conversations").load()
+# Lire conversations privées (format "mongo" pour le connecteur 3.0.1)
+convs_df = spark.read.format("mongo").option("collection", "conversations").load()
 private_ids = (
     convs_df.filter(F.col("type") == "private").select("_id").withColumnRenamed("_id", "conv_id")
 )
 
-# Lire messages
-msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
+# Lire messages (format "mongo" pour le connecteur 3.0.1)
+msgs_df = spark.read.format("mongo").option("collection", "messages").load()
 msgs_df = msgs_df.select("_id", "conversation_id", "sender_id", "ts")
 
 # Joindre pour ne garder que les messages de conversations privées
@@ -53,6 +53,7 @@ global_avg = None
 global_median = None
 response_count = None
 per_conv = None
+dist = None
 
 for i in range(3):
     t0 = time.time()
@@ -97,8 +98,8 @@ per_conv = responses.groupBy("conversation_id").agg(
 print("Top 20 conversations les plus RAPIDES (avg_sec ASC) :")
 per_conv.orderBy(F.col("avg_sec").asc()).limit(20).show()
 
-# Écriture dans stats_s26
-per_conv.write.format("mongodb").option("collection", "stats_s26").mode("overwrite").save()
+# Écriture dans stats_s26 (format "mongo" pour le connecteur 3.0.1)
+per_conv.write.format("mongo").option("collection", "stats_s26").mode("overwrite").save()
 
 rows = per_conv.count()
 print(f"Lignes écrites dans stats_s26 : {rows}")
