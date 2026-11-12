@@ -51,6 +51,12 @@ echo "==> MONGO_URI: $MONGO_URI"
 echo ""
 
 # À exécuter sur VM1, là où le conteneur spark-master est hébergé.
+if [[ "$JOB_NAME" =~ ^cmp_a(16|17|18)$ ]]; then
+    JOB_PATH="/workspace/spark/comparaison/${JOB_NAME}.py"
+else
+    JOB_PATH="/workspace/spark/jobs/${JOB_NAME}.py"
+fi
+
 docker exec -e MONGO_URI="$MONGO_URI" spark-master \
     /opt/spark/bin/spark-submit \
     --master "spark://$SPARK_MASTER_HOST:7077" \
@@ -59,4 +65,4 @@ docker exec -e MONGO_URI="$MONGO_URI" spark-master \
     --conf "spark.driver.host=$SPARK_MASTER_HOST" \
     --conf spark.driver.bindAddress=0.0.0.0 \
     --executor-memory 1g --total-executor-cores 4 \
-    "/workspace/spark/jobs/${JOB_NAME}.py"
+    "$JOB_PATH"

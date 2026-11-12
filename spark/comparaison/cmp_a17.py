@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from pyspark.sql import functions as F
 from spark.spark_session import get_spark_session
+from spark.comparaison.timing import record_spark_timing
 
 # --- Initialisation de la Session Spark ---
 t_session_start = time.time()
@@ -33,6 +34,7 @@ for _ in range(3):
 
 spark_avg_ms = sum(spark_times) / len(spark_times)
 print(f"SPARK_AVG_MS={spark_avg_ms:.0f}")
+record_spark_timing("A17", spark_avg_ms, t_session_ms)
 print(f"DUREE_MS={spark_avg_ms:.0f}")
 
 spark_top = sorted(
