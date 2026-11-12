@@ -179,8 +179,17 @@ def load_csv(filename):
         )
     try:
         df = pd.read_csv(path)
+        if filename == "native_vs_spark.csv":
+            expected_columns = ["query_id", "native_avg_ms", "spark_avg_ms"]
+            if list(df.columns) != expected_columns:
+                return None, (
+                    "Format invalide pour native_vs_spark.csv : "
+                    f"colonnes attendues {expected_columns}, reçues {list(df.columns)}"
+                )
+            for column in expected_columns[1:]:
+                df[column] = pd.to_numeric(df[column], errors="raise")
         return df, None
-    except (OSError, pd.errors.ParserError, UnicodeDecodeError) as exc:
+    except (OSError, pd.errors.ParserError, UnicodeDecodeError, ValueError) as exc:
         return None, f"Erreur de lecture du CSV ({path}) : {exc}"
 
 

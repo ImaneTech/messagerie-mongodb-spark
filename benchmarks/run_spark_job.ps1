@@ -34,6 +34,12 @@ Write-Host "==> MONGO_URI: $env:MONGO_URI"
 Write-Host ""
 
 # À exécuter sur VM1, là où le conteneur spark-master est hébergé.
+if ($JobName -match '^cmp_a(16|17|18)$') {
+    $jobPath = "/workspace/spark/comparaison/$JobName.py"
+} else {
+    $jobPath = "/workspace/spark/jobs/$JobName.py"
+}
+
 $cmdArgs = @(
     "exec",
     "-e", "MONGO_URI=$env:MONGO_URI",
@@ -46,7 +52,7 @@ $cmdArgs = @(
     "--conf", "spark.driver.bindAddress=0.0.0.0",
     "--executor-memory", "1g",
     "--total-executor-cores", "4",
-    "/workspace/spark/jobs/$JobName.py"
+    $jobPath
 )
 
 & docker @cmdArgs

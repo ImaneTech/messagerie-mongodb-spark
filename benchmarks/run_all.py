@@ -18,6 +18,7 @@ SPARK_JOBS = [
     "s29_report_rate_by_sender",
     "s30_retention_cohorts",
 ]
+SPARK_COMPARISON_JOBS = ["cmp_a16", "cmp_a17", "cmp_a18"]
 
 SPARK_JOB_DESCRIPTIONS = {
     "s26_avg_response_time": "Temps de réponse moyen",
@@ -103,6 +104,25 @@ def run_spark_jobs():
         if result.returncode != 0:
             print(f"  ATTENTION: {job} a échoué (code {result.returncode})")
 
+    for job in SPARK_COMPARISON_JOBS:
+        print(f"  Lancement {job}...")
+        result = subprocess.run(
+            cmd_prefix + [job], capture_output=False, text=True
+        )
+        if result.returncode != 0:
+            print(f"  ATTENTION: {job} a échoué (code {result.returncode})")
+
+
+def merge_comparison():
+    print("\n=== Fusion native / Spark A16-A18 ===")
+    result = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(__file__), "merge_native_spark.py")],
+        capture_output=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("La fusion native / Spark a échoué")
+
 
 def merge_all_queries():
     native_path = os.path.join(RESULTS_DIR, "queries_native.csv")
@@ -181,6 +201,7 @@ def main():
 
     if args.with_spark:
         run_spark_jobs()
+        merge_comparison()
 
     merge_all_queries()
     print("\nrun_all.py terminé.")

@@ -15,6 +15,8 @@ Fusion et comparaison formelle des résultats entre MongoDB natif (PyMongo) et A
 import csv
 import os
 import sys
+import time
+import shutil
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -26,23 +28,8 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 NATIVE_CSV = os.path.join(RESULTS_DIR, "queries_native.csv")
 SPARK_CMP_CSV = os.path.join(RESULTS_DIR, "spark_cmp_timings.csv")
 OUTPUT_CSV = os.path.join(RESULTS_DIR, "native_vs_spark.csv")
-
-
-def read_native_timings():
-    """Retourne {query_id: avg_ms} depuis queries_native.csv."""
-    data = {}
-    if not os.path.exists(NATIVE_CSV):
-        print(f"[WARN] Absent: {NATIVE_CSV}")
-        return data
-    with open(NATIVE_CSV, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
-            qid = row.get("query_id", "").strip()
-            if qid in ("A16", "A17", "A18"):
-                try:
-                    data[qid] = float(row.get("avg_ms", 0))
-                except ValueError:
-                    data[qid] = 0.0
-    return data
+DASHBOARD_CSV = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard", "native_vs_spark.csv")
+COMPARISON_IDS = ("A16", "A17", "A18")
 
 
 def read_spark_cmp_timings():
@@ -55,6 +42,7 @@ def read_spark_cmp_timings():
     if not os.path.exists(SPARK_CMP_CSV):
         print("[WARN] spark_cmp_timings.csv absent - timings Spark inconnus")
         return data
+
     with open(SPARK_CMP_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             qid = row.get("query_id", "").strip()
@@ -70,44 +58,59 @@ def read_spark_cmp_timings():
     return data
 
 
+def measure_native_timings(runs=3):
+    """Measure each native aggregation repeatedly and return average milliseconds."""
+    timings = {}
+    for query_id in COMPARISON_IDS:
+        durations = []
+        for _ in range(runs):
+            start = time.perf_counter()
+            get_native_result(query_id)
+            durations.append((time.perf_counter() - start) * 1000)
+        timings[query_id] = sum(durations) / len(durations)
+        print(f"  {query_id} MongoDB natif: {timings[query_id]:.2f} ms ({runs} runs)")
+    return timings
+
+
 def get_native_result(query_id):
     """Exécute la requête native et retourne le résultat sous forme canonique."""
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    db = client[MONGO_DB]
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    start_30d = now - timedelta(days=30)
-    result = {}
+    try:
+        db = client[MONGO_DB]
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_30d = now - timedelta(days=30)
 
-    if query_id == "A16":
-        pipeline = [
-            {"$match": {"ts": {"$gte": start_30d}}},
-            {
-                "$group": {
-                    "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}},
-                    "total_messages": {"$sum": 1},
-                }
-            },
-            {"$sort": {"_id": 1}},
-        ]
-        docs = list(db.messages.aggregate(pipeline))
-        result = {d["_id"]: d["total_messages"] for d in docs}
+        if query_id == "A16":
+            pipeline = [
+                {"$match": {"ts": {"$gte": start_30d}}},
+                {
+                    "$group": {
+                        "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}},
+                        "total_messages": {"$sum": 1},
+                    }
+                },
+                {"$sort": {"_id": 1}},
+            ]
+            docs = list(db.messages.aggregate(pipeline))
+            return {d["_id"]: d["total_messages"] for d in docs}
 
-    elif query_id == "A17":
-        pipeline = [
-            {"$group": {"_id": "$sender_id", "message_count": {"$sum": 1}}},
-            {"$sort": {"message_count": -1}},
-            {"$limit": 10},
-        ]
-        docs = list(db.messages.aggregate(pipeline))
-        result = {d["_id"]: d["message_count"] for d in docs}
+        if query_id == "A17":
+            pipeline = [
+                {"$group": {"_id": "$sender_id", "message_count": {"$sum": 1}}},
+                {"$sort": {"message_count": -1}},
+                {"$limit": 10},
+            ]
+            docs = list(db.messages.aggregate(pipeline))
+            return {d["_id"]: d["message_count"] for d in docs}
 
-    elif query_id == "A18":
-        pipeline = [{"$group": {"_id": "$type", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}]
-        docs = list(db.messages.aggregate(pipeline))
-        result = {d["_id"]: d["count"] for d in docs}
+        if query_id == "A18":
+            pipeline = [{"$group": {"_id": "$type", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}]
+            docs = list(db.messages.aggregate(pipeline))
+            return {d["_id"]: d["count"] for d in docs}
 
-    client.close()
-    return result
+        raise ValueError(f"Unknown comparison query: {query_id}")
+    finally:
+        client.close()
 
 
 def get_spark_result(query_id):
@@ -211,11 +214,18 @@ def compare(native_res, spark_res, query_id):
 def main():
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
-    native_timings = read_native_timings()
+    native_timings = measure_native_timings()
     spark_timings = read_spark_cmp_timings()
+    missing_spark = [qid for qid in COMPARISON_IDS if qid not in spark_timings]
+    if missing_spark:
+        raise RuntimeError(
+            "Missing Spark timings for "
+            + ", ".join(missing_spark)
+            + ". Run cmp_a16.py, cmp_a17.py and cmp_a18.py first."
+        )
 
     rows = []
-    for qid in ["A16", "A17", "A18"]:
+    for qid in COMPARISON_IDS:
         print(f"\n=== Comparaison {qid} ===")
         native_res = get_native_result(qid)
         spark_res = get_spark_result(qid)
@@ -224,34 +234,29 @@ def main():
 
         native_avg = native_timings.get(qid, None)
         spark_avg = spark_timings.get(qid, {}).get("spark_avg_ms", None)
-        spark_sess = spark_timings.get(qid, {}).get("spark_session_ms", None)
-
+        if native_avg is None or spark_avg is None:
+            raise RuntimeError(f"Missing timing for {qid}; refusing to write incomplete CSV")
         rows.append(
             {
                 "query_id": qid,
-                "native_avg_ms": f"{native_avg:.2f}" if native_avg is not None else "N/A",
-                "spark_avg_ms": f"{spark_avg:.2f}" if spark_avg is not None else "N/A",
-                "spark_session_ms": f"{spark_sess:.2f}" if spark_sess is not None else "N/A",
-                "same_result": verdict,
+                "native_avg_ms": f"{native_avg:.6f}",
+                "spark_avg_ms": f"{spark_avg:.6f}",
             }
         )
 
-    fieldnames = ["query_id", "native_avg_ms", "spark_avg_ms", "spark_session_ms", "same_result"]
+    fieldnames = ["query_id", "native_avg_ms", "spark_avg_ms"]
     with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+    shutil.copyfile(OUTPUT_CSV, DASHBOARD_CSV)
 
     print(f"\n=== {OUTPUT_CSV} ===")
-    print(
-        f"{'query_id':<8} {'native_avg_ms':>14} {'spark_avg_ms':>13} {'spark_session_ms':>16} {'same_result':>12}"
-    )
-    print("-" * 68)
+    print(f"{'query_id':<8} {'native_avg_ms':>14} {'spark_avg_ms':>13}")
+    print("-" * 40)
     for r in rows:
-        print(
-            f"{r['query_id']:<8} {r['native_avg_ms']:>14} {r['spark_avg_ms']:>13} "
-            f"{r['spark_session_ms']:>16} {r['same_result']:>12}"
-        )
+        print(f"{r['query_id']:<8} {r['native_avg_ms']:>14} {r['spark_avg_ms']:>13}")
+    print(f"Copie dashboard : {DASHBOARD_CSV}")
 
 
 if __name__ == "__main__":
