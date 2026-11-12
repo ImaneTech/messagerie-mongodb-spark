@@ -13,12 +13,16 @@ from spark.spark_session import get_spark_session
 
 MAX_GAP_SECONDS = 3600
 
+# URIs explicites pour le Replica Set MongoDB NoSQL
+MONGO_URI_READ = "mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/messagerie?replicaSet=rs0"
+MONGO_URI_WRITE = "mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/messagerie.stats_s26?replicaSet=rs0"
+
 spark = get_spark_session("S26_AvgResponseTime")
 
-# Lire conversations privées en spécifiant la base "messagerie"
+# 1. Lire conversations privées
 convs_df = (
     spark.read.format("mongo")
-    .option("database", "messagerie")
+    .option("spark.mongodb.input.uri", MONGO_URI_READ)
     .option("collection", "conversations")
     .load()
 )
@@ -26,10 +30,10 @@ private_ids = (
     convs_df.filter(F.col("type") == "private").select("_id").withColumnRenamed("_id", "conv_id")
 )
 
-# Lire messages en spécifiant la base "messagerie"
+# 2. Lire messages
 msgs_df = (
     spark.read.format("mongo")
-    .option("database", "messagerie")
+    .option("spark.mongodb.input.uri", MONGO_URI_READ)
     .option("collection", "messages")
     .load()
 )
@@ -47,7 +51,6 @@ msgs_w = msgs_private.withColumn("prev_sender", F.lag("sender_id").over(w)).with
 )
 
 # Une réponse valide : sender diffère du précédent ET 0 < gap <= MAX_GAP_SECONDS
-# gap=0 (messages simultanés) = pas une réponse mesurable
 responses = (
     msgs_w.filter(F.col("prev_sender").isNotNull() & (F.col("sender_id") != F.col("prev_sender")))
     .withColumn(
@@ -67,7 +70,6 @@ dist = None
 
 for i in range(3):
     t0 = time.time()
-    # Calculs globaux avec distribution complète
     agg_row = responses.agg(
         F.count("*").alias("nb"),
         F.avg("delta_sec").alias("avg_sec"),
@@ -108,8 +110,8 @@ per_conv = responses.groupBy("conversation_id").agg(
 print("Top 20 conversations les plus RAPIDES (avg_sec ASC) :")
 per_conv.orderBy(F.col("avg_sec").asc()).limit(20).show()
 
-# Écriture dans stats_s26
-per_conv.write.format("mongo").option("database", "messagerie").option("collection", "stats_s26").mode("overwrite").save()
+# 3. Écriture dans stats_s26 avec la clé d'URI d'écriture explicite
+per_conv.write.format("mongo").option("spark.mongodb.output.uri", MONGO_URI_WRITE).mode("overwrite").save()
 
 rows = per_conv.count()
 print(f"Lignes écrites dans stats_s26 : {rows}")
