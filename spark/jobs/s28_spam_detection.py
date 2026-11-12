@@ -6,26 +6,17 @@ import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
+from spark.spark_session import get_spark_session
+
 MAX_GAP_SECONDS = 3600
-HOSTS = "192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017"
-URI_MSGS = f"mongodb://{HOSTS}/chatdb.messages?replicaSet=rs0"
-URI_STATS = f"mongodb://{HOSTS}/chatdb.stats_s28?replicaSet=rs0"
 
-spark = (
-    SparkSession.builder
-    .appName("S28_SpamDetection")
-    .config("spark.mongodb.input.uri", URI_MSGS)
-    .config("spark.mongodb.output.uri", URI_STATS)
-    .getOrCreate()
-)
-spark.sparkContext.setLogLevel("ERROR")
+spark = get_spark_session("S28_SpamDetection")
 
-# Lire messages de type text (format "mongo" et URI explicite)
-msgs_df = spark.read.format("mongo").option("uri", URI_MSGS).load()
+# Lire messages de type text
+msgs_df = spark.read.format("mongodb").option("collection", "messages").load()
 msgs_df = msgs_df.filter(F.col("type") == "text").select(
     "sender_id", "content", "conversation_id", "ts"
 )
@@ -63,7 +54,7 @@ print(f"SPARK_SENDER_IDS={spark_sender_ids}")
 print(f"SPARK_ROWS={len(spark_rows)}")
 
 # Écriture dans stats_s28 (avec URI d'écriture explicite)
-spam.write.format("mongo").option("uri", URI_STATS).mode("overwrite").save()
+spam.write.format("mongodb").option("collection", "stats_s28").mode("overwrite").save()
 print(f"Lignes écrites dans stats_s28 (spammeurs dédupliqués) : {len(spark_rows)}")
 
 spark.stop()
