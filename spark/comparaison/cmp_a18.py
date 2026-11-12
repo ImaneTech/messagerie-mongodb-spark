@@ -47,7 +47,7 @@ print(f"Lignes écrites dans stats_cmp_a18 : {len(spark_rows)}")
 print(f"Durée écriture : {write_ms:.0f} ms")
 
 # --- Export direct en CSV pour le dashboard Streamlit ---
-csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../native_vs_spark.csv"))
+csv_path = "/tmp/native_vs_spark.csv"
 rows_to_write = [
     {"benchmark": "A18", "type": r["type"], "count": r["count"], "duration_ms": spark_avg_ms}
     for r in spark_rows
