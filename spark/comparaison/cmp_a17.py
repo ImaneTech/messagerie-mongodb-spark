@@ -7,7 +7,6 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import functions as F
-
 from spark.spark_session import get_spark_session
 
 # --- Initialisation de la Session Spark ---
@@ -31,6 +30,7 @@ for _ in range(3):
     )
     spark_rows = result_df.collect()
     spark_times.append((time.time() - t0) * 1000)
+
 spark_avg_ms = sum(spark_times) / len(spark_times)
 print(f"SPARK_AVG_MS={spark_avg_ms:.0f}")
 print(f"DUREE_MS={spark_avg_ms:.0f}")
@@ -40,9 +40,7 @@ spark_top = sorted(
 )
 print(f"Spark top1 : {spark_top[0] if spark_top else 'none'}")
 
-# La comparaison native/Spark est réalisée dans merge_native_spark.py
 print("SAME_RESULT=SPARK_ONLY")
-
 result_df.show(10)
 
 # --- Écriture résultat dans MongoDB ---
