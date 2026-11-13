@@ -8,8 +8,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
-os.makedirs(RESULTS_DIR, exist_ok=True)
+BASE_DIR = os.path.dirname(__file__)
 
 SPARK_JOBS = [
     "s26_avg_response_time",
@@ -60,9 +59,10 @@ NATIVE_FAMILIES = {
 def run_native_queries():
     print("=== (a) Requêtes natives ===")
     result = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(__file__), "run_native_queries.py")],
+        [sys.executable, os.path.join(BASE_DIR, "run_native_queries.py")],
         capture_output=False,
         text=True,
+        check=True,
     )
     return result.returncode == 0
 
@@ -70,9 +70,10 @@ def run_native_queries():
 def run_index_test():
     print("\n=== (b) Test des index ===")
     result = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(__file__), "index_test.py")],
+        [sys.executable, os.path.join(BASE_DIR, "index_test.py")],
         capture_output=False,
         text=True,
+        check=True,
     )
     return result.returncode == 0
 
@@ -80,50 +81,45 @@ def run_index_test():
 def run_consistency_test():
     print("\n=== (c) Test de cohérence ===")
     result = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(__file__), "consistency_test.py")],
+        [sys.executable, os.path.join(BASE_DIR, "consistency_test.py")],
         capture_output=False,
         text=True,
+        check=True,
     )
     return result.returncode == 0
 
 
 def run_spark_jobs():
     print("\n=== Spark jobs ===")
-    script = os.path.abspath(os.path.join(os.path.dirname(__file__), "run_spark_job.sh"))
+    script = os.path.abspath(os.path.join(BASE_DIR, "run_spark_job.sh"))
     cmd_prefix = ["bash", script]
 
     for job in SPARK_JOBS:
         print(f"  Lancement {job}...")
-        result = subprocess.run(
-            cmd_prefix + [job], capture_output=False, text=True
-        )
-        if result.returncode != 0:
-            print(f"  ATTENTION: {job} a échoué (code {result.returncode})")
+        subprocess.run(cmd_prefix + [job], capture_output=False, text=True, check=True)
 
     for job in SPARK_COMPARISON_JOBS:
         print(f"  Lancement {job}...")
-        result = subprocess.run(
-            cmd_prefix + [job], capture_output=False, text=True
-        )
-        if result.returncode != 0:
-            print(f"  ATTENTION: {job} a échoué (code {result.returncode})")
+        subprocess.run(cmd_prefix + [job], capture_output=False, text=True, check=True)
 
 
 def merge_comparison():
     print("\n=== Fusion native / Spark A16-A18 ===")
     result = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(__file__), "merge_native_spark.py")],
+        [sys.executable, os.path.join(BASE_DIR, "merge_native_spark.py")],
         capture_output=False,
         text=True,
+        check=True,
     )
     if result.returncode != 0:
         raise RuntimeError("La fusion native / Spark a échoué")
 
 
 def merge_all_queries():
-    native_path = os.path.join(RESULTS_DIR, "queries_native.csv")
-    spark_path = os.path.join(RESULTS_DIR, "spark_jobs.csv")
-    out_path = os.path.join(RESULTS_DIR, "all_queries.csv")
+    results_dir = os.path.join(BASE_DIR, "results")
+    native_path = os.path.join(results_dir, "queries_native.csv")
+    spark_path = os.path.join(results_dir, "spark_jobs.csv")
+    out_path = os.path.join(results_dir, "all_queries.csv")
 
     rows = []
 

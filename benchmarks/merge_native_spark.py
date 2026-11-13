@@ -14,10 +14,11 @@ Fusion et comparaison formelle des résultats entre MongoDB natif (PyMongo) et A
 
 import csv
 import os
+import shutil
+import statistics
 import sys
 import time
-import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from pymongo import MongoClient
@@ -67,8 +68,14 @@ def measure_native_timings(runs=3):
             start = time.perf_counter()
             get_native_result(query_id)
             durations.append((time.perf_counter() - start) * 1000)
-        timings[query_id] = sum(durations) / len(durations)
-        print(f"  {query_id} MongoDB natif: {timings[query_id]:.2f} ms ({runs} runs)")
+        timings[query_id] = {
+            "avg_ms": sum(durations) / len(durations),
+            "median_ms": statistics.median(durations),
+        }
+        print(
+            f"  {query_id} MongoDB natif: "
+            f"{timings[query_id]['avg_ms']:.2f} ms ({runs} runs)"
+        )
     return timings
 
 
@@ -77,7 +84,7 @@ def get_native_result(query_id):
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     try:
         db = client[MONGO_DB]
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         start_30d = now - timedelta(days=30)
 
         if query_id == "A16":
@@ -165,7 +172,7 @@ def compare(native_res, spark_res, query_id):
         print(f"  A16 native: {native_days} jours, {native_total} messages")
         print(f"  A16 spark : {spark_days} jours, {spark_total} messages")
         # Tolérance ±1% sur le total (rechargement peut changer légèrement)
-        if native_days == spark_days and abs(native_total - spark_total) <= 0.01 * native_total:
+        if native_days == spark_days and native_total == spark_total:
             return "OK", f"jours={native_days}, total={native_total}"
         else:
             return (
@@ -183,8 +190,6 @@ def compare(native_res, spark_res, query_id):
         spark_keys = {k for k, v in spark_top}
         if native_keys == spark_keys and dict(native_top) == dict(spark_top):
             return "OK", f"top10 identique, top1={native_top[0]}"
-        elif native_keys == spark_keys:
-            return "OK", "top10 mêmes senders (counts peuvent varier si rechargement)"
         else:
             diff = native_keys.symmetric_difference(spark_keys)
             return "DIFFERENT", f"senders différents: {diff}"
@@ -195,14 +200,6 @@ def compare(native_res, spark_res, query_id):
         print(f"  A18 spark : {sorted(spark_res.items())}")
         if native_res == spark_res:
             return "OK", f"types identiques: {list(native_res.keys())}"
-        # Vérifier si les types sont les mêmes (counts peuvent différer légèrement après rechargement)
-        if set(native_res.keys()) == set(spark_res.keys()):
-            total_native = sum(native_res.values())
-            total_spark = sum(spark_res.values())
-            if abs(total_native - total_spark) <= 0.01 * total_native:
-                return "OK", f"types identiques, totaux ~égaux ({total_native} vs {total_spark})"
-            else:
-                return "DIFFERENT", f"totaux différents: native={total_native} spark={total_spark}"
         return (
             "DIFFERENT",
             f"types différents: native={set(native_res.keys())} spark={set(spark_res.keys())}",
@@ -232,19 +229,20 @@ def main():
         verdict, detail = compare(native_res, spark_res, qid)
         print(f"  -> same_result={verdict}  ({detail})")
 
-        native_avg = native_timings.get(qid, None)
+        native_timing = native_timings.get(qid)
         spark_avg = spark_timings.get(qid, {}).get("spark_avg_ms", None)
-        if native_avg is None or spark_avg is None:
+        if native_timing is None or spark_avg is None:
             raise RuntimeError(f"Missing timing for {qid}; refusing to write incomplete CSV")
         rows.append(
             {
                 "query_id": qid,
-                "native_avg_ms": f"{native_avg:.6f}",
+                "native_avg_ms": f"{native_timing['avg_ms']:.6f}",
+                "native_median_ms": f"{native_timing['median_ms']:.6f}",
                 "spark_avg_ms": f"{spark_avg:.6f}",
             }
         )
 
-    fieldnames = ["query_id", "native_avg_ms", "spark_avg_ms"]
+    fieldnames = ["query_id", "native_avg_ms", "native_median_ms", "spark_avg_ms"]
     with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

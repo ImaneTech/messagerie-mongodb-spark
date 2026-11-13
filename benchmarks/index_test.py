@@ -11,34 +11,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from pymongo import DESCENDING
 
 from config.settings import COLLECTIONS
-from queries.utils import get_db
+from queries.utils import get_db, select_benchmark_ids
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
-
-
-def get_heavy_conv(db):
-    """Retourne la conversation_id avec le plus de messages."""
-    pipeline = [
-        {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}},
-        {"$limit": 1},
-    ]
-    top = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
-    return top[0]["_id"] if top else None
-
-
-def get_heavy_user(db):
-    """Retourne le user_id participant au plus de conversations."""
-    pipeline = [
-        {"$unwind": "$participants"},
-        {"$group": {"_id": "$participants.user_id", "count": {"$sum": 1}}},
-        {"$match": {"count": {"$gte": 5}}},
-        {"$sort": {"count": -1}},
-        {"$limit": 1},
-    ]
-    top = list(db[COLLECTIONS["conversations"]].aggregate(pipeline))
-    return top[0]["_id"] if top else None
 
 
 def explain_query(db, collection_name, query_filter, sort=None, limit=None, hint=None):
@@ -239,8 +215,7 @@ def bench(query_id, db, collection_name, query_filter, sort_spec, limit, n_runs=
 def main():
     db = get_db()
 
-    conv_id = get_heavy_conv(db)
-    user_id = get_heavy_user(db)
+    conv_id, user_id = select_benchmark_ids(db)
     print(f"T4 conv_id: {conv_id}")
     print(f"T6 user_id: {user_id}")
 

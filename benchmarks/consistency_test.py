@@ -18,12 +18,13 @@ import os
 import statistics
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bson import ObjectId
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from pymongo import DESCENDING, MongoClient, WriteConcern
+from pymongo.errors import PyMongoError
 from pymongo.read_concern import ReadConcern
 
 from config.settings import COLLECTIONS, MONGO_DB, MONGO_URI
@@ -41,9 +42,10 @@ def get_members_up():
         )
         client.close()
         return members_up
-    except Exception as e:
-        print(f"replSetGetStatus error (toléré): {e}")
-        return 1
+    except PyMongoError as exc:
+        raise RuntimeError(
+            f"Impossible de vérifier les membres MongoDB ({type(exc).__name__})."
+        ) from exc
 
 
 def get_heavy_conv(db):
@@ -63,7 +65,7 @@ def make_message(conv_id, user_id=None):
         "sender_id": user_id or ObjectId(),
         "content": "benchmark test",
         "type": "text",
-        "ts": datetime.now(timezone.utc).replace(tzinfo=None),
+        "ts": datetime.now(UTC).replace(tzinfo=None),
         "deleted": False,
         "_benchmark": True,
     }
@@ -128,7 +130,7 @@ def calc_stats(times, n_runs=None):
 
 
 def main():
-    client = MongoClient(MONGO_URI)
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client[MONGO_DB]
     
     members_up = get_members_up()

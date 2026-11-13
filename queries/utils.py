@@ -2,17 +2,50 @@
 
 import csv
 import os
+import statistics
 import time
 
 from pymongo import MongoClient
 
-from config.settings import MONGO_DB, MONGO_URI
+from config.settings import COLLECTIONS, MONGO_DB, MONGO_URI
 
 
 def get_db():
     """Retourne l'objet Database MongoDB connecté au Replica Set."""
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     return client[MONGO_DB]
+
+
+def select_benchmark_ids(db):
+    """Sélectionne les identifiants déterministes utilisés par T4 et T6."""
+    messages = db[COLLECTIONS["messages"]]
+    conversations = db[COLLECTIONS["conversations"]]
+    conv = next(
+        messages.aggregate(
+            [
+                {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1, "_id": 1}},
+                {"$limit": 1},
+            ]
+        ),
+        None,
+    )
+    user = next(
+        conversations.aggregate(
+            [
+                {"$unwind": "$participants"},
+                {"$group": {"_id": "$participants.user_id", "count": {"$sum": 1}}},
+                {"$match": {"count": {"$gte": 5}}},
+                {"$sort": {"count": -1, "_id": 1}},
+                {"$limit": 1},
+            ]
+        ),
+        None,
+    )
+    return (
+        conv["_id"] if conv else None,
+        user["_id"] if user else None,
+    )
 
 
 def timed(fn, runs=3):
@@ -28,6 +61,7 @@ def timed(fn, runs=3):
         times.append((end - start) * 1000.0)
     return {
         "avg": round(sum(times) / len(times), 2),
+        "median": round(statistics.median(times), 2),
         "min": round(min(times), 2),
         "max": round(max(times), 2),
     }
