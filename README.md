@@ -131,10 +131,6 @@ pip install -r requirements.txt
 # ou : cd deploy/vm1 && docker compose up -d
 ```
 
-<p align="center">
-  <img src="./screenshots/docker_compose_machine_a.png" width="100%" alt="Docker Compose Machine A — conteneurs démarrés" />
-</p>
-
 ### 5.2 Déploiement VM2 `192.168.0.101` (Worker 1)
 
 ```bash
