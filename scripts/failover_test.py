@@ -1,49 +1,50 @@
-"""
-Script : scripts.failover_test
-Projet : Messagerie Distribuée Haute Performance (MongoDB & Apache Spark)
-
-Rôle du fichier :
-Test automatisé de haute disponibilité et de bascule (Failover) du Replica Set MongoDB (`rs0`).
-Protocole expérimental :
-1. Vérification que `mongo1` est le Primaire initial.
-2. Déclenchement de la panne du Primaire (`docker stop mongo1` ou `docker pause mongo1`).
-3. Chronométrage de la phase d'élection du nouveau Primaire (`wait_for(primary)`).
-4. Validation de la résilience d'écriture avec accusé de réception majoritaire (`w=majority`).
-5. Redémarrage de `mongo1` et mesure du temps de réintégration comme Secondaire.
-6. Enregistrement des mesures de bascule dans `benchmarks/results/failover_test.csv`.
-"""
+"""Mesure la reprise des écritures après une bascule MongoDB."""
 
 import argparse
 import csv
 import os
 import subprocess
 import sys
+import threading
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+from pymongo.write_concern import WriteConcern
 
 from config.settings import IP_A, IP_B, IP_C, MONGO_DB, MONGO_URI
 
-# Adresses IP des membres du Replica Set (toutes sur le port 27017).
-# À exécuter sur VM1 : les commandes docker stop/start ciblent mongo1 localement.
 MEMBERS = {
     "mongo1": (IP_A, 27017),
     "mongo2": (IP_B, 27017),
     "mongo3": (IP_C, 27017),
 }
 RESULTS = Path("benchmarks/results/failover_test.csv")
+WRITE_INTERVAL_S = 0.2
+ELECTION_TIMEOUT_S = 60
+REJOIN_TIMEOUT_S = 120
+
+
+def utc_now():
+    return datetime.now(UTC)
+
+
+def format_time(value):
+    return value.isoformat(timespec="milliseconds") if value else ""
 
 
 def hello(name):
     host, port = MEMBERS[name]
     client = MongoClient(
-        host, port, directConnection=True,
-        serverSelectionTimeoutMS=500, connectTimeoutMS=500,
+        host,
+        port,
+        directConnection=True,
+        serverSelectionTimeoutMS=500,
+        connectTimeoutMS=500,
     )
     try:
         return client.admin.command("hello")
@@ -51,6 +52,21 @@ def hello(name):
         return None
     finally:
         client.close()
+
+
+def replica_summary():
+    members = []
+    for name in MEMBERS:
+        info = hello(name)
+        if info is None:
+            members.append({"name": name, "state": "UNREACHABLE"})
+        elif info.get("isWritablePrimary"):
+            members.append({"name": name, "state": "PRIMARY"})
+        elif info.get("secondary"):
+            members.append({"name": name, "state": "SECONDARY"})
+        else:
+            members.append({"name": name, "state": "OTHER"})
+    return members
 
 
 def find_primary(candidates):
@@ -62,61 +78,189 @@ def find_primary(candidates):
 
 
 def wait_for(predicate, timeout):
-    """Retourne la durée en secondes avant que predicate() soit vrai, ou None."""
-    start = time.perf_counter()
-    while time.perf_counter() - start < timeout:
-        if predicate():
-            return time.perf_counter() - start
+    start = time.monotonic()
+    while time.monotonic() - start < timeout:
+        result = predicate()
+        if result:
+            return result
         time.sleep(0.1)
     return None
 
 
-def run(mode):
+def write_loop(collection, stop_event, attempts):
+    write_number = 0
+    while not stop_event.is_set():
+        attempted_at = utc_now()
+        try:
+            collection.insert_one(
+                {"write_number": write_number, "attempted_at": attempted_at},
+            )
+            attempts.append(
+                {"at": utc_now(), "ok": True, "error": ""},
+            )
+            print(
+                f"{format_time(attempts[-1]['at'])} "
+                f"tentative={write_number} ok"
+            )
+        except PyMongoError as error:
+            attempts.append(
+                {"at": utc_now(), "ok": False, "error": type(error).__name__},
+            )
+            print(
+                f"{format_time(attempts[-1]['at'])} "
+                f"tentative={write_number} erreur={type(error).__name__}"
+            )
+        write_number += 1
+        stop_event.wait(WRITE_INTERVAL_S)
+
+
+def stop_container(mode):
+    stopped_at = utc_now()
+    subprocess.run(
+        ["docker", mode, "mongo1"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return stopped_at
+
+
+def run_trial(mode, trial_number):
     if find_primary(MEMBERS) != "mongo1":
-        raise SystemExit("mongo1 doit être le primaire au départ.")
+        raise RuntimeError("mongo1 doit être le primaire au début de chaque essai.")
 
-    survivors = ["mongo2", "mongo3"]
-    t0 = time.perf_counter()
-    subprocess.run(["docker", mode, "mongo1"], check=True, capture_output=True)
+    client = MongoClient(
+        MONGO_URI,
+        serverSelectionTimeoutMS=1500,
+        connectTimeoutMS=1000,
+        socketTimeoutMS=1500,
+    )
+    collection = client[MONGO_DB]["failover_test"].with_options(
+        write_concern=WriteConcern(w="majority", wtimeout=1000),
+    )
+    attempts = []
+    stop_writer = threading.Event()
+    writer = threading.Thread(
+        target=write_loop,
+        args=(collection, stop_writer, attempts),
+        daemon=True,
+    )
+    container_stopped = False
+    try:
+        writer.start()
+        if not wait_for(lambda: any(item["ok"] for item in attempts), 15):
+            raise RuntimeError("Aucune écriture de préparation n'a réussi.")
 
-    election = wait_for(lambda: find_primary(survivors) is not None, 60)
-    new_primary = find_primary(survivors)
-    elapsed_election = (time.perf_counter() - t0) if election is not None else None
+        stopped_at = stop_container(mode)
+        container_stopped = True
+        new_primary = wait_for(
+            lambda: find_primary(["mongo2", "mongo3"]),
+            ELECTION_TIMEOUT_S,
+        )
+        first_after = wait_for(
+            lambda: next(
+                (
+                    item["at"]
+                    for item in attempts
+                    if item["ok"] and item["at"] >= stopped_at
+                ),
+                None,
+            ),
+            ELECTION_TIMEOUT_S,
+        )
+        stop_writer.set()
+        writer.join(timeout=5)
 
-    client = MongoClient(MONGO_URI, w="majority", serverSelectionTimeoutMS=30000)
-    coll = client[MONGO_DB]["failover_test"]
-    w0 = time.perf_counter()
-    coll.insert_one({"ts": datetime.now(), "mode": mode})
-    write_time = time.perf_counter() - w0
+        before = [
+            item["at"]
+            for item in attempts
+            if item["ok"] and item["at"] < stopped_at
+        ]
+        last_before = max(before) if before else None
+        if last_before is None or first_after is None or new_primary is None:
+            raise RuntimeError(
+                "Mesure incomplète : primaire ou écritures manquants."
+            )
 
-    subprocess.run(["docker", "start", "mongo1"], check=True, capture_output=True)
-    s0 = time.perf_counter()
-    rejoin = wait_for(lambda: hello("mongo1") is not None, 120)
-    back = wait_for(lambda: find_primary(["mongo1"]) is not None, 120)
-    back_total = (time.perf_counter() - s0) if back is not None else None
+        subprocess.run(
+            ["docker", "start", "mongo1"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        container_stopped = False
+        rejoined = wait_for(lambda: hello("mongo1") is not None, REJOIN_TIMEOUT_S)
+        if rejoined is None:
+            raise RuntimeError("mongo1 ne rejoint pas le Replica Set.")
+        final_primary = wait_for(
+            lambda: find_primary(["mongo1", "mongo2", "mongo3"]),
+            REJOIN_TIMEOUT_S,
+        )
+        if final_primary is None:
+            raise RuntimeError("Aucun primaire détecté après le redémarrage.")
 
-    coll.drop()
-    client.close()
-    return {
-        "date": datetime.now().isoformat(timespec="seconds"),
-        "mode": mode,
-        "new_primary": new_primary,
-        "election_s": round(elapsed_election, 2) if elapsed_election else "",
-        "write_after_failover_s": round(write_time, 2),
-        "mongo1_reachable_s": round(rejoin, 2) if rejoin else "",
-        "mongo1_primary_again_s": round(back_total, 2) if back_total else "",
-    }
+        interruption = (first_after - last_before).total_seconds()
+        row = {
+            "trial": trial_number,
+            "mode": mode,
+            "t_arret": format_time(stopped_at),
+            "t_derniere_ok": format_time(last_before),
+            "t_premiere_ok": format_time(first_after),
+            "new_primary": new_primary,
+            "interruption_s": round(interruption, 3),
+            "final_primary": final_primary,
+        }
+        print(f"Essai {trial_number}: {row}")
+        print(f"État final : {replica_summary()}")
+        return row
+    finally:
+        stop_writer.set()
+        if writer.is_alive():
+            writer.join(timeout=5)
+        if container_stopped:
+            subprocess.run(
+                ["docker", "start", "mongo1"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        collection.drop()
+        client.close()
+
+
+def write_results(rows):
+    RESULTS.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0])
+    with RESULTS.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["stop", "kill"], default="stop")
+    parser.add_argument("--runs", type=int, default=3)
+    args = parser.parse_args()
+    if args.runs < 1:
+        parser.error("--runs doit être supérieur ou égal à 1")
+
+    print(f"État initial : {replica_summary()}")
+    rows = [run_trial(args.mode, trial) for trial in range(1, args.runs + 1)]
+    write_results(rows)
+    values = [row["interruption_s"] for row in rows]
+    values.sort()
+    middle = len(values) // 2
+    median = values[middle] if len(values) % 2 else (
+        values[middle - 1] + values[middle]
+    ) / 2
+    average = sum(values) / len(values)
+    print(f"Moyenne interruption : {average:.3f} s")
+    print(f"Médiane interruption : {median:.3f} s")
+    print(f"Résultats écrits dans {RESULTS}")
+    with RESULTS.open(encoding="utf-8") as file:
+        print(file.read(), end="")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["stop", "kill"], default="kill")
-    row = run(parser.parse_args().mode)
-    print(row)
-    RESULTS.parent.mkdir(parents=True, exist_ok=True)
-    new_file = not RESULTS.exists()
-    with RESULTS.open("a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=row.keys())
-        if new_file:
-            writer.writeheader()
-        writer.writerow(row)
+    main()

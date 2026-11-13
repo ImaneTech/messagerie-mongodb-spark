@@ -158,6 +158,19 @@ Les fichiers `native_vs_spark.csv`, `index_test.csv`,
 produits par les mesures. Les anciennes valeurs ne doivent pas être
 interprétées comme une nouvelle mesure du cluster.
 
+### Mesure de la bascule
+
+Le test mesure la reprise des écritures après le changement de primaire. Il
+utilise une collection dédiée, réalise trois essais par défaut et écrit les
+résultats dans `benchmarks/results/failover_test.csv`.
+
+```bash
+python3 scripts/failover_test.py --mode stop
+```
+
+La durée mesurée correspond au temps entre la dernière écriture réussie avant
+la panne et la première écriture réussie après la reprise.
+
 ## Tableau de bord
 
 Lancer Streamlit depuis la racine :
