@@ -17,22 +17,16 @@ services:
   spark-master:
     image: apache/spark:3.5.3-python3
     container_name: spark-master
-    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
+    network_mode: host
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host 192.168.0.100 --port 7077 --webui-port 8080
     environment:
+      SPARK_LOCAL_IP: 192.168.0.100
       SPARK_PUBLIC_DNS: 192.168.0.100
       MONGO_URI: mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/chatdb?replicaSet=rs0&readPreference=primaryPreferred
       MONGO_DB: chatdb
-    ports:
-      - "8080:8080"
-      - "7077:7077"
     volumes:
-      - ..:/workspace
+      - /home/node1-master/messagerie-mongodb-spark:/workspace
     restart: unless-stopped
-    depends_on:
-      mongo1:
-        condition: service_healthy
-    networks:
-      - chat_net
 
 networks:
   chat_net:

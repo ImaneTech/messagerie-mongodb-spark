@@ -75,7 +75,7 @@ def bench_t1_write_concern(db, conv_id, wc_value, runs=50):
     """Insère 1 message avec write concern w=wc_value, runs fois."""
     times = []
     coll = db[COLLECTIONS["messages"]].with_options(
-        write_concern=WriteConcern(w=wc_value, wtimeout=10000)
+        write_concern=WriteConcern(w=wc_value, wtimeout=60000)
     )
     for _ in range(runs):
         doc = make_message(conv_id)
@@ -91,7 +91,7 @@ def bench_t2_write_concern(db, conv_id, wc_value, runs=5):
     """Insère 10 000 messages avec write concern w=wc_value, runs fois."""
     times = []
     coll = db[COLLECTIONS["messages"]].with_options(
-        write_concern=WriteConcern(w=wc_value, wtimeout=10000)
+        write_concern=WriteConcern(w=wc_value, wtimeout=60000)
     )
     for _ in range(runs):
         docs = [make_message(conv_id) for _ in range(10000)]
