@@ -1,7 +1,7 @@
 # Messagerie MongoDB et Spark
 
-Projet Big Data du sujet 04 : une messagerie distribuée construite avec
-MongoDB Replica Set, Apache Spark et Streamlit.
+Application de messagerie distribuée construite avec MongoDB Replica Set,
+Apache Spark et Streamlit.
 
 Le projet fonctionne sur trois VM Ubuntu :
 
@@ -77,9 +77,6 @@ messagerie-mongodb-spark/
 - Docker Engine et Docker Compose ;
 - Python 3.10 ou plus récent ;
 - ports `27017`, `7077`, `8080`, `8081`, `8082` et `8501` accessibles selon le rôle.
-
-Aucun fichier `.env` n'est nécessaire. La configuration fixe est centralisée
-dans `config/settings.py`.
 
 ### Préparer le projet
 
@@ -173,14 +170,12 @@ streamlit run dashboard/app.py
 ```
 
 Le tableau de bord présente cinq espaces : vue d'ensemble, usage, abus et
-modération, engagement et performance. Il lit les collections `stats_*` et
-les CSV présents dans `benchmarks/results/`. Lorsqu'une donnée est absente,
-la page affiche un message d'information.
+modération, engagement et performance, avec des graphiques et des indicateurs.
 
 ## Preuves d'exécution
 
-Les captures de la version actuelle sont regroupées dans `screenshots/`.
-Elles sont nommées en français et classées par étape.
+Les preuves sont regroupées dans `screenshots/`, avec des titres et
+des descriptions courtes.
 
 ### Cluster et données
 
