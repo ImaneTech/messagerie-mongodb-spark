@@ -3,11 +3,8 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from pymongo import DESCENDING
-
 from config.settings import COLLECTIONS
 from queries.utils import get_db
-
 
 # Cache de la paire de test pour éviter de répéter la recherche dans les benchmarks
 _cached_pair = None
