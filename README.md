@@ -28,13 +28,10 @@ Spark utilise le port `7077` et son interface Web est disponible sur le port
 
 ## Architecture
 
-Le flux principal est :
-
-```text
-Générateur Python -> MongoDB chatdb -> Connecteur MongoDB-Spark
-                  -> Jobs PySpark -> Collections stats_*
-                  -> Tableau de bord Streamlit
-```
+**Architecture du système**
+Ce schéma présente les VM, le Replica Set MongoDB, le cluster Spark et le
+tableau de bord Streamlit.
+<p align="center"><img src="./screenshots/preuve_architecture.png" width="700" alt="Architecture du système"></p>
 
 Le déploiement est décrit dans les trois fichiers Compose :
 
