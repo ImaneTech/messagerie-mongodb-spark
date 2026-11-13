@@ -18,7 +18,8 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 8. [Traitements Distribués PySpark](#8-traitements-distribués-pyspark)
 9. [Benchmarks, Sécurité & Failover](#9-benchmarks-sécurité--failover)
 10. [Tableau de Bord Streamlit](#10-tableau-de-bord-streamlit)
-11. [Guide de Dépannage](#11-guide-de-dépannage)
+11. [Preuves d'Exécution](#11-preuves-dexécution)
+12. [Guide de Dépannage](#12-guide-de-dépannage)
 
 ---
 
@@ -416,7 +417,79 @@ Le tableau de bord utilise les collections `stats_...` et les fichiers de résul
 
 ---
 
-## 11. Guide de Dépannage
+## 11. Preuves d'Exécution
+
+Les captures suivantes documentent l'exécution du cluster, des benchmarks Spark, du failover et du tableau de bord.
+
+### Cluster et données
+
+![État du cluster MongoDB](./screenshots/preuve_cluster_etat.png)
+
+![Initialisation du Replica Set](./screenshots/preuve_initialisation_replica.png)
+
+![Comptage des collections](./screenshots/preuve_comptage_donnees.png)
+
+![Tests des index T4 et T6](./screenshots/preuve_tests_index.png)
+
+### Spark et benchmarks
+
+![Interface Spark initiale](./screenshots/preuve_spark_initial.png)
+
+![Job S27 terminé](./screenshots/preuve_spark_s27_termine.png)
+
+![Contacts communs S27](./screenshots/preuve_spark_s27_contacts.png)
+
+![Temps de réponse S26](./screenshots/preuve_spark_s26_reponse.png)
+
+![Taux de signalement S29](./screenshots/preuve_spark_s29_signalements.png)
+
+![Cohortes S30](./screenshots/preuve_spark_s30_cohortes.png)
+
+![Comparaison Spark A17](./screenshots/preuve_spark_a17.png)
+
+![Comparaison Spark A18](./screenshots/preuve_spark_a18.png)
+
+![Comparaison Spark A16](./screenshots/preuve_spark_a16.png)
+
+![Comparaison MongoDB natif et Spark](./screenshots/preuve_comparaison_native_spark.png)
+
+![Cohérence des écritures](./screenshots/preuve_coherence_write_concern.png)
+
+![Élection après failover](./screenshots/preuve_election_failover.png)
+
+### Tableau de bord
+
+![Lancement du tableau de bord](./screenshots/preuve_lancement_streamlit.png)
+
+![Vue d'ensemble](./screenshots/preuve_dashboard_vue_ensemble.png)
+
+![Répartition des types de messages](./screenshots/preuve_dashboard_types.png)
+
+![Messages par heure](./screenshots/preuve_dashboard_heures.png)
+
+![Top des utilisateurs actifs](./screenshots/preuve_dashboard_utilisateurs.png)
+
+![Modération des signalements](./screenshots/preuve_dashboard_moderation.png)
+
+![Taux de signalement](./screenshots/preuve_dashboard_signalements.png)
+
+![Détection du spam](./screenshots/preuve_dashboard_spam.png)
+
+![Rétention par cohorte](./screenshots/preuve_dashboard_retention.png)
+
+![Temps de réponse S26](./screenshots/preuve_dashboard_reponse.png)
+
+![Temps moyen des requêtes](./screenshots/preuve_dashboard_requetes.png)
+
+![Performance des index T4 et T6](./screenshots/preuve_dashboard_indexes.png)
+
+![Test de cohérence](./screenshots/preuve_dashboard_coherence.png)
+
+![Comparaison native et Spark](./screenshots/preuve_dashboard_native_spark.png)
+
+---
+
+## 12. Guide de Dépannage
 
 | Problème | Cause Possible | Solution |
 |---|---|---|
