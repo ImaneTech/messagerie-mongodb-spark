@@ -89,12 +89,8 @@ def run_consistency_test():
 
 def run_spark_jobs():
     print("\n=== Spark jobs ===")
-    if sys.platform == "win32":
-        script = os.path.abspath(os.path.join(os.path.dirname(__file__), "run_spark_job.ps1"))
-        cmd_prefix = ["powershell", "-File", script]
-    else:
-        script = os.path.abspath(os.path.join(os.path.dirname(__file__), "run_spark_job.sh"))
-        cmd_prefix = ["bash", script]
+    script = os.path.abspath(os.path.join(os.path.dirname(__file__), "run_spark_job.sh"))
+    cmd_prefix = ["bash", script]
 
     for job in SPARK_JOBS:
         print(f"  Lancement {job}...")

@@ -35,7 +35,7 @@ COMPARISON_IDS = ("A16", "A17", "A18")
 def read_spark_cmp_timings():
     """
     Retourne {query_id: {spark_avg_ms, spark_session_ms}} depuis spark_cmp_timings.csv.
-    Ce CSV est produit par run_spark_cmp.ps1 (ou manuellement après les jobs cmp).
+    Ce CSV est produit après les jobs de comparaison Spark.
     Format: query_id, spark_avg_ms, spark_session_ms
     """
     data = {}
