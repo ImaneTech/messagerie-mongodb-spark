@@ -24,11 +24,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Generated data & benchmark results
+# Generated data
 data/
 load_out.txt
 load_err.txt
-benchmarks/results/
 
 # Temporary files
 .agents/
