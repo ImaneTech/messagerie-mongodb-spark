@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -16,7 +16,7 @@ def run():
     """
     db = get_db()
     conversations = db[COLLECTIONS["conversations"]]
-    cutoff = datetime.utcnow() - timedelta(days=7)
+    cutoff = datetime.now(UTC) - timedelta(days=7)
 
     pipeline = [
         {"$match": {"last_message_at": {"$lt": cutoff}}},

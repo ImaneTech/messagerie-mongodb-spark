@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from pymongo import DESCENDING
 
 from config.settings import COLLECTIONS
-from queries.utils import get_db
+from queries.utils import get_db, select_benchmark_ids
 
 
 def get_query(conversation_id=None, limit=50):
@@ -14,14 +14,7 @@ def get_query(conversation_id=None, limit=50):
     messages = db[COLLECTIONS["messages"]]
 
     if not conversation_id:
-        # Chercher la conversation avec le plus de messages
-        pipeline = [
-            {"$group": {"_id": "$conversation_id", "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}},
-            {"$limit": 1},
-        ]
-        top = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
-        conversation_id = top[0]["_id"] if top else None
+        conversation_id = select_benchmark_ids(db)[0]
 
     cursor = (
         messages.find({"conversation_id": conversation_id, "deleted": False})

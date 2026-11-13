@@ -7,7 +7,7 @@ from config.settings import COLLECTIONS
 from queries.utils import get_db
 
 
-def run(limit=10):
+def run(limit=1):
     """
     A23: Top emojis les plus utilisés dans les réactions.
     Aggregation sur messages avec $unwind reactions, $group par emoji, $sort desc.

@@ -251,8 +251,8 @@ python -m data_generator.load_data
 |---|---|---|
 | **A16** | Volume de messages par jour | `$match` ➔ `$group` (`$dateToString`) ➔ `$sort` |
 | **A17** | Top 10 utilisateurs actifs | `$group` ➔ `$sort` ➔ `$limit(10)` ➔ `$lookup` |
-| **A18** | Répartition par type de contenu | `$group` par `type` (text, image, audio) |
-| **A19** | Taille moyenne des pièces jointes | `$match` + `$group` (`$avg` sur `size_bytes`) |
+| **A18** | Répartition par type de contenu | `$group` par `type` (text, image, voice) |
+| **A19** | Taille moyenne des pièces jointes | `$match` + `$group` (`$avg` sur `attachment.size`) |
 | **A20** | Groupes de plus de 50 membres | Filtre sur `type=group` et `participants_count` |
 | **A21** | Utilisateurs inactifs depuis 30 jours | Range query indexée sur `last_login` |
 | **A22** | Distribution horaire des envois | `$group` sur `$hour` |

@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from pymongo import DESCENDING
 
 from config.settings import COLLECTIONS
-from queries.utils import get_db
+from queries.utils import get_db, select_benchmark_ids
 
 
 def get_query(user_id=None, limit=20):
@@ -14,16 +14,7 @@ def get_query(user_id=None, limit=20):
     conversations = db[COLLECTIONS["conversations"]]
 
     if not user_id:
-        # Chercher l'utilisateur participant au plus de conversations (>= 5)
-        pipeline = [
-            {"$unwind": "$participants"},
-            {"$group": {"_id": "$participants.user_id", "count": {"$sum": 1}}},
-            {"$match": {"count": {"$gte": 5}}},
-            {"$sort": {"count": -1}},
-            {"$limit": 1},
-        ]
-        top = list(db[COLLECTIONS["conversations"]].aggregate(pipeline))
-        user_id = top[0]["_id"] if top else None
+        user_id = select_benchmark_ids(db)[1]
 
     cursor = (
         conversations.find({"participants.user_id": user_id})

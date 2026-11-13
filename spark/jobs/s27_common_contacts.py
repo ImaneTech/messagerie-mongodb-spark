@@ -1,6 +1,7 @@
 """Identification des contacts communs par auto-jointure distribuée (self-join)."""
 
 import os
+import statistics
 import sys
 import time
 
@@ -38,15 +39,18 @@ pairs = joined.groupBy("user_a", "user_b").agg(F.countDistinct("contact_id").ali
 # Top 20 des paires les plus connectées
 top20 = pairs.orderBy(F.col("common_count").desc()).limit(20)
 
-# 5. Mesure de l'action de calcul distribué (3 runs, moyenne conforme guide §4.7)
+# 5. Mesure de l'action de calcul distribué (3 runs, après échauffement)
 spark_times = []
+top20.collect()
 for _ in range(3):
     t0 = time.time()
     res = top20.collect()
     spark_times.append((time.time() - t0) * 1000)
 
 avg_ms = sum(spark_times) / len(spark_times)
+median_ms = statistics.median(spark_times)
 print(f"SPARK_AVG_MS={avg_ms:.0f}")
+print(f"SPARK_MEDIAN_MS={median_ms:.0f}")
 print(f"DUREE_MS={avg_ms:.0f}")
 top20.show()
 
