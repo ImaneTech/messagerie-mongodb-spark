@@ -1,0 +1,38 @@
+services:
+  mongo3:
+    image: mongo:7
+    container_name: mongo3
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    ports: ["27017:27017"]
+    volumes: [mongo3-data:/data/db]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chat_net
+
+  spark-worker2:
+    image: apache/spark:3.5.3-python3
+    container_name: spark-worker2
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://192.168.0.100:7077
+    environment:
+      SPARK_PUBLIC_DNS: 192.168.0.102
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+      MONGO_URI: mongodb://192.168.0.100:27017,192.168.0.101:27017,192.168.0.102:27017/chatdb?replicaSet=rs0&readPreference=primaryPreferred
+      MONGO_DB: chatdb
+    ports:
+      - "8082:8081"
+    restart: unless-stopped
+    networks:
+      - chat_net
+
+networks:
+  chat_net:
+    driver: bridge
+
+volumes:
+  mongo3-data:

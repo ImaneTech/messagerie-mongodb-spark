@@ -10,22 +10,22 @@ ROLE="${1:-}"
 
 usage() {
     echo "Usage: $0 <a|b|c>"
-    echo "  a / vm1   -> machine-a : mongo1 + spark-master"
-    echo "  b / vm2   -> machine-b : mongo2 + spark-worker1"
-    echo "  c / vm3   -> machine-c : mongo3 + spark-worker2"
+    echo "  a / vm1   -> deploy/vm1 : mongo1 + spark-master"
+    echo "  b / vm2   -> deploy/vm2 : mongo2 + spark-worker1"
+    echo "  c / vm3   -> deploy/vm3 : mongo3 + spark-worker2"
 }
 
 case "$ROLE" in
-    a|vm1|machine-a)
-        COMPOSE_DIR="machine-a"
+    a|vm1)
+        COMPOSE_DIR="deploy/vm1"
         SERVICES=(mongo1 spark-master)
         ;;
-    b|vm2|machine-b)
-        COMPOSE_DIR="machine-b"
+    b|vm2)
+        COMPOSE_DIR="deploy/vm2"
         SERVICES=(mongo2 spark-worker1)
         ;;
-    c|vm3|machine-c)
-        COMPOSE_DIR="machine-c"
+    c|vm3)
+        COMPOSE_DIR="deploy/vm3"
         SERVICES=(mongo3 spark-worker2)
         ;;
     *)

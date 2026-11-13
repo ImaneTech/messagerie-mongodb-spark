@@ -10,24 +10,24 @@ ROLE="${1:-}"
 
 usage() {
     echo "Usage: $0 <a|b|c>"
-    echo "  a / vm1   -> machine-a : mongo1 puis spark-master"
-    echo "  b / vm2   -> machine-b : mongo2 puis spark-worker1"
-    echo "  c / vm3   -> machine-c : mongo3 puis spark-worker2"
+    echo "  a / vm1   -> deploy/vm1 : mongo1 puis spark-master"
+    echo "  b / vm2   -> deploy/vm2 : mongo2 puis spark-worker1"
+    echo "  c / vm3   -> deploy/vm3 : mongo3 puis spark-worker2"
 }
 
 case "$ROLE" in
-    a|vm1|machine-a)
-        COMPOSE_DIR="machine-a"
+    a|vm1)
+        COMPOSE_DIR="deploy/vm1"
         MONGO_SERVICE="mongo1"
         SPARK_SERVICE="spark-master"
         ;;
-    b|vm2|machine-b)
-        COMPOSE_DIR="machine-b"
+    b|vm2)
+        COMPOSE_DIR="deploy/vm2"
         MONGO_SERVICE="mongo2"
         SPARK_SERVICE="spark-worker1"
         ;;
-    c|vm3|machine-c)
-        COMPOSE_DIR="machine-c"
+    c|vm3)
+        COMPOSE_DIR="deploy/vm3"
         MONGO_SERVICE="mongo3"
         SPARK_SERVICE="spark-worker2"
         ;;
@@ -50,7 +50,7 @@ docker compose -f "$COMPOSE_FILE" up -d "$MONGO_SERVICE"
 echo "Étape 2 : attente de stabilisation (15s)..."
 sleep 15
 
-if [ "$COMPOSE_DIR" = "machine-a" ]; then
+if [ "$COMPOSE_DIR" = "deploy/vm1" ]; then
     echo "Étape 3 : vérification du Replica Set depuis mongo1..."
     docker exec mongo1 mongosh --quiet --eval "rs.status().members.map(m => m.name + ': ' + m.stateStr)" || true
 fi

@@ -56,7 +56,7 @@ def check_spark():
     print("\n" + "=" * 60)
     print("2. VÉRIFICATION DU CLUSTER APACHE SPARK")
     print("=" * 60)
-    url = f"http://{IP_A}:18080/json/"
+    url = f"http://{IP_A}:8080/json/"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=3) as resp:
@@ -95,4 +95,3 @@ if __name__ == "__main__":
     print(f"RÉSUMÉ : MongoDB={'OK' if mongo_ok else 'KO'} | Spark={'OK' if spark_ok else 'KO'}")
     print("=" * 60)
     sys.exit(0 if (mongo_ok and spark_ok) else 1)
-
