@@ -1,0 +1,2 @@
+trial,mode,t_arret,t_derniere_ok,t_premiere_ok,new_primary,interruption_s,final_primary
+1,stop,2026-11-13T22:57:33.584+00:00,2026-11-13T22:57:33.528+00:00,2026-11-13T22:57:34.158+00:00,mongo2,0.63,mongo2
