@@ -201,6 +201,10 @@ Cette capture compare les plans et les temps avec et sans index.
 Cette capture confirme que le Master Spark est actif et que les workers sont connectés.
 <p align="center"><img src="./screenshots/preuve_spark_initial.png" width="420" alt="Interface initiale de Spark"></p>
 
+**Jobs Spark exécutés**
+Cette capture présente les applications Spark terminées et en cours d'exécution.
+<p align="center"><img src="./screenshots/preuve_spark_jobs.png" width="420" alt="Jobs Spark exécutés"></p>
+
 **Job S27 terminé**
 Cette capture montre la fin du job Spark et son statut d'exécution.
 <p align="center"><img src="./screenshots/preuve_spark_s27_termine.png" width="420" alt="Job S27 terminé"></p>
