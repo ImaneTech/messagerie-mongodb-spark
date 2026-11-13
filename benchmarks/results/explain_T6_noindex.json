@@ -1,0 +1,7 @@
+{
+  "stage_chain": "SORT > COLLSCAN",
+  "totalKeysExamined": 0,
+  "totalDocsExamined": 8000,
+  "nReturned": 9,
+  "executionTimeMillis": 14
+}

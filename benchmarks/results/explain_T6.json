@@ -1,0 +1,7 @@
+{
+  "stage_chain": "LIMIT > FETCH > IXSCAN",
+  "totalKeysExamined": 9,
+  "totalDocsExamined": 9,
+  "nReturned": 9,
+  "executionTimeMillis": 2
+}
