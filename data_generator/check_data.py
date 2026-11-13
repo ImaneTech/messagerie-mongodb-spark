@@ -5,18 +5,20 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from pymongo import ASCENDING, MongoClient
+from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
 
 from config.settings import MONGO_DB, MONGO_URI
 
 
-def check_data():
+def _check_data():
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client[MONGO_DB]
+    client.admin.command("ping")
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     one_day_ago = now - timedelta(days=1)
     seven_days_ago = now - timedelta(days=7)
     thirty_days_ago = now - timedelta(days=30)
@@ -269,5 +271,13 @@ def check_data():
     return all_passed
 
 
+def check_data():
+    try:
+        return _check_data()
+    except (ServerSelectionTimeoutError, PyMongoError) as exc:
+        print(f"Erreur MongoDB : cluster indisponible ou sans primaire ({type(exc).__name__}).")
+        return False
+
+
 if __name__ == "__main__":
-    check_data()
+    sys.exit(0 if check_data() else 1)

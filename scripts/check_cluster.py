@@ -8,6 +8,7 @@ Vérification d'état complet de l'infrastructure multi-machines :
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -42,13 +43,13 @@ def check_mongodb():
             print(f"  • {name:<18} État: {state:<12} Santé: {health} (uptime: {uptime}s)")
 
         if healthy_count == 3 and primary_found:
-            print(f"[OK] Replica Set optimal : 3/3 membres en ligne avec un Primaire actif.")
+            print("[OK] Replica Set optimal : 3/3 membres en ligne avec un Primaire actif.")
             return True
         else:
             print(f"[ATTENTION] État dégradé : {healthy_count}/3 membres en ligne. Primaire trouvé: {primary_found}")
             return False
     except PyMongoError as e:
-        print(f"[ERREUR] Connexion MongoDB impossible via {MONGO_URI} : {e}")
+        print(f"[ERREUR] Connexion MongoDB impossible : {type(e).__name__}")
         return False
 
 
@@ -82,8 +83,8 @@ def check_spark():
             else:
                 print(f"[ATTENTION] Nombre de workers insuffisant : {len(alive_workers)}/2 attendus.")
                 return False
-    except Exception as e:
-        print(f"[INFO] Master Spark Web UI non joignable à {url} : {e}")
+    except (OSError, TimeoutError, urllib.error.URLError, ValueError) as exc:
+        print(f"[INFO] Master Spark Web UI non joignable à {url} : {type(exc).__name__}")
         print("Vérifiez que le conteneur spark-master est démarré sur la machine A.")
         return False
 
