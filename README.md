@@ -1,6 +1,6 @@
 # Messagerie Instantanée : MongoDB Replica Set + Apache Spark
 
-Plateforme de données distribuée pour une application de messagerie instantanée (10 000 utilisateurs, conversations privées et de groupe, statuts de lecture, signalements).
+Plateforme de données distribuée pour une application de messagerie instantanée avec conversations privées et de groupe, statuts de lecture et signalements.
 
 Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 nœuds), les analyses et la détection d'abus sont exécutées de façon distribuée via **Apache Spark** (1 Master, 2 Workers), et le suivi opérationnel est rendu visuel via un tableau de bord **Streamlit**.
 
@@ -69,7 +69,7 @@ Le stockage hautement disponible est géré par **MongoDB** (Replica Set à 3 n�
 messagerie-mongodb-spark/
 ├── benchmarks/              # Scripts de mesures de temps, Write Concern et index
 │   └── run_all.py           # Exécution automatisée des 30 requêtes
-│   # results/ est gitignored (généré à l'exécution)
+│   └── results/             # Résultats générés après les mesures
 ├── config/                  # Fichiers de configuration MongoDB & Spark
 │   └── settings.py
 ├── dashboard/               # Interface Web Streamlit
@@ -165,8 +165,7 @@ Une fois les 3 VMs démarrées, initialiser le Replica Set avec les priorités s
 
 ```bash
 python scripts/init_replica_set.py
-# Ou via mongosh direct sur VM1 :
-# docker exec -i mongo1 mongosh --quiet < scripts/init_replica_set.js
+# L'initialisation est effectuée par le script Python ci-dessus.
 ```
 
 Vérification de l'ensemble du cluster (MongoDB + Spark) en une seule commande :
@@ -211,11 +210,11 @@ python -m data_generator.load_data
 
 | Collection | Stratégie | Documents | Description |
 |---|---|---|---|
-| `users` | Imbriqué | **10 000** | Profils, tableau `contacts[]`, sous-document `settings{}` |
-| `conversations` | Imbriqué | **8 000** | Métadonnées, tableau `participants[]` |
-| `messages` | Référence | **105 420** | Référence `conversation_id` & `sender_id`, imbrique `attachment{}` et `reactions[]` |
-| `read_status` | Séparée | **38 450** | Horodatage `last_read_ts` par participant |
-| `reports` | Séparée | **1 420** | Signalements référençant `message_id` |
+| `users` | Imbriqué | Voir `benchmarks/results/` | Profils, tableau `contacts[]`, sous-document `settings{}` |
+| `conversations` | Imbriqué | Voir `benchmarks/results/` | Métadonnées, tableau `participants[]` |
+| `messages` | Référence | Voir `benchmarks/results/` | Référence `conversation_id` et `sender_id`, avec `attachment{}` et `reactions[]` |
+| `read_status` | Séparée | Voir `benchmarks/results/` | Horodatage `last_read_ts` par participant |
+| `reports` | Séparée | Voir `benchmarks/results/` | Signalements référençant `message_id` |
 
 <p align="center">
   <img src="./screenshots/mongodb_compass_collections.png" width="100%" alt="MongoDB Compass — collections chatdb et volumes" />
@@ -300,15 +299,15 @@ python benchmarks/consistency_test.py
 
 | Mode | Latence T01 | Garantie |
 |---|---|---|
-| `w: 1` | **2.4 ms** | Acquittement primaire uniquement |
-| `w: majority` | **8.1 ms** | Acquittement par ≥ 2 nœuds sur 3 |
+| `w: 1` | Voir `benchmarks/results/` | Acquittement primaire uniquement |
+| `w: majority` | Voir `benchmarks/results/` | Acquittement par la majorité |
 
 ### 9.3 Gain apporté par l'Indexation (T04)
 
 | Stratégie | Temps | Documents scannés |
 |---|---|---|
-| Sans index (`COLLSCAN`) | 68.4 ms | 105 420 |
-| Avec index (`IXSCAN`) | **1.2 ms** | 50 |
+| Sans index (`COLLSCAN`) | Voir `benchmarks/results/` | Voir `benchmarks/results/` |
+| Avec index (`IXSCAN`) | Voir `benchmarks/results/` | Voir `benchmarks/results/` |
 
 ### 9.4 Test de Bascule Automatique (Failover)
 
@@ -317,7 +316,7 @@ docker stop mongo1   # arrêt brutal du Primary
 docker start mongo1  # réintègre le cluster en tant que SECONDARY
 ```
 
-**Résultat observé :** élection et promotion de `mongo2` en PRIMARY en **2.4 secondes**.
+**Résultat observé :** l'élection et la promotion doivent être vérifiées sur le cluster actif et consignées dans `benchmarks/results/`.
 
 <p align="center">
   <img src="./screenshots/failover_test_terminal.png" width="100%" alt="Terminal — test de bascule failover" />
@@ -340,6 +339,14 @@ streamlit run dashboard/app.py
 ```
 
 Accessible à `http://localhost:8501` ou `http://192.168.0.100:8501`
+
+Le tableau de bord utilise les collections `stats_...` et les fichiers de résultats présents dans `benchmarks/results/`. Si une collection ou un fichier est absent, la page concernée affiche un message d'information au lieu d'inventer une mesure.
+
+### Limites connues
+
+- VM1 et VM2 peuvent partager le même ordinateur physique.
+- MongoDB est sans authentification dans cette configuration de laboratoire.
+- Les ports MongoDB et Spark doivent être accessibles sur le réseau local.
 
 ### Vue d'ensemble — KPIs et messages par jour (A16)
 

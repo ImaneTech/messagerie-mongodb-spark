@@ -54,7 +54,6 @@ def generate_users(num_users=10000, seed=42):
                 "phone": fake.phone_number()[:15],
                 "country": fake.country_code(),
                 "created_at": created_at,
-                "registered_at": created_at,  # Conforme spécification ENSAJ §3.2
                 "contacts": [],  # rempli ci-dessous
                 "settings": {
                     "notifications": random.choice([True, False]),
@@ -62,7 +61,6 @@ def generate_users(num_users=10000, seed=42):
                     "read_receipts": random.choice([True, True, False]),
                 },
                 "last_login": last_login,
-                "last_seen": last_login,  # Conforme spécification ENSAJ §3.2
             }
         )
 
@@ -421,7 +419,7 @@ def generate_reports(messages, total_reports=1200, seed=42):
     reasons = ["spam", "harassment", "inappropriate", "offensive", "scam"]
     statuses = ["pending", "resolved", "dismissed"]
 
-    all_senders = list(set(m["sender_id"] for m in messages))
+    all_senders = list({m["sender_id"] for m in messages})
 
     sampled_messages = random.sample(messages, min(total_reports, len(messages)))
 
