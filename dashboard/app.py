@@ -1,14 +1,17 @@
-﻿import sys
-import os
+﻿import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import streamlit as st
+from datetime import UTC, datetime, timedelta
+
 import pandas as pd
 import plotly.express as px
-from datetime import datetime, timedelta, timezone
+import streamlit as st
 from pymongo import MongoClient
-from config.settings import MONGO_URI, MONGO_DB, COLLECTIONS
+from pymongo.errors import PyMongoError
+
+from config.settings import COLLECTIONS, MONGO_DB, MONGO_URI
 
 st.set_page_config(page_title="Messagerie — Tableau de bord", layout="wide")
 
@@ -44,8 +47,8 @@ def get_counts():
         db = get_db()
         result = {col: db[COLLECTIONS[col]].count_documents({}) for col in COLLECTIONS}
         return result
-    except Exception as e:
-        st.error(f"Erreur de connexion MongoDB: {e}")
+    except PyMongoError as exc:
+        st.error(f"Erreur de connexion MongoDB: {type(exc).__name__}")
         return {}
 
 
@@ -53,7 +56,7 @@ def get_counts():
 def get_messages_per_day():
     try:
         db = get_db()
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         start_30d = now - timedelta(days=30)
         pipeline = [
             {"$match": {"ts": {"$gte": start_30d}}},
@@ -69,8 +72,8 @@ def get_messages_per_day():
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
         return docs
-    except Exception as e:
-        st.error(f"Erreur de connexion MongoDB: {e}")
+    except PyMongoError as exc:
+        st.error(f"Erreur de connexion MongoDB: {type(exc).__name__}")
         return []
 
 
@@ -84,8 +87,8 @@ def get_messages_by_type():
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
         return docs
-    except Exception as e:
-        st.error(f"Erreur de connexion MongoDB: {e}")
+    except PyMongoError as exc:
+        st.error(f"Erreur de connexion MongoDB: {type(exc).__name__}")
         return []
 
 
@@ -99,8 +102,8 @@ def get_messages_by_hour():
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
         return docs
-    except Exception as e:
-        st.error(f"Erreur de connexion MongoDB: {e}")
+    except PyMongoError as exc:
+        st.error(f"Erreur de connexion MongoDB: {type(exc).__name__}")
         return []
 
 
@@ -115,8 +118,8 @@ def get_top_users(limit=10):
         ]
         docs = list(db[COLLECTIONS["messages"]].aggregate(pipeline))
         return docs
-    except Exception as e:
-        st.error(f"Erreur de connexion MongoDB: {e}")
+    except PyMongoError as exc:
+        st.error(f"Erreur de connexion MongoDB: {type(exc).__name__}")
         return []
 
 
@@ -135,8 +138,8 @@ def get_reports_by_reason_status():
         ]
         docs = list(db[COLLECTIONS["reports"]].aggregate(pipeline))
         return docs
-    except Exception as e:
-        st.error(f"Erreur de connexion MongoDB: {e}")
+    except PyMongoError as exc:
+        st.error(f"Erreur de connexion MongoDB: {type(exc).__name__}")
         return []
 
 
@@ -158,8 +161,8 @@ def get_stats_collection(collection_name, sort_field=None, ascending=True, limit
             query = query.limit(limit)
         docs = list(query)
         return docs, None
-    except Exception as e:
-        return None, f"Erreur de connexion MongoDB: {e}"
+    except PyMongoError as exc:
+        return None, f"Erreur de connexion MongoDB: {type(exc).__name__}"
 
 
 def load_csv(filename):

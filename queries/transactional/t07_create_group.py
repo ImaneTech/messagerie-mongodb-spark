@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -27,7 +27,7 @@ def run(name="Nouveau Groupe de Discussion", creator_id=None, member_ids=None):
         creator_id = sample_users[0]["_id"]
         member_ids = [u["_id"] for u in sample_users[1:]]
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     participants = [{"user_id": creator_id, "role": "admin"}]
     for m in member_ids or []:
         participants.append({"user_id": m, "role": "member"})

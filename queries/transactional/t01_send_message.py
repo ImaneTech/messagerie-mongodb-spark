@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -26,7 +26,7 @@ def run(conversation_id=None, sender_id=None, content="Hello !", msg_type="text"
         conversation_id = conv["_id"]
         sender_id = conv["participants"][0]["user_id"]
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     msg_id = f"msg_{uuid.uuid4().hex[:12]}"
 
     doc = {

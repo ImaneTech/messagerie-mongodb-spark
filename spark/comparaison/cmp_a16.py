@@ -3,13 +3,14 @@
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import functions as F
-from spark.spark_session import get_spark_session
+
 from spark.comparaison.timing import record_spark_timing
+from spark.spark_session import get_spark_session
 
 # --- Initialisation de la Session Spark ---
 t_session_start = time.time()
@@ -17,7 +18,7 @@ spark = get_spark_session("CMP_A16_MessagesPerDay")
 t_session_ms = (time.time() - t_session_start) * 1000
 print(f"SPARK_SESSION_MS={t_session_ms:.0f}")
 
-now = datetime.now(timezone.utc).replace(tzinfo=None)
+now = datetime.now(UTC).replace(tzinfo=None)
 start_30d = now - timedelta(days=30)
 
 # --- Exécution de 3 runs Spark pour calcul de moyenne ---

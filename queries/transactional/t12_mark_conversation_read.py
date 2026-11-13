@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -43,7 +43,7 @@ def run(conversation_id=None, user_id=None, last_read_ts=None):
             _original_state["last_read_ts"] = st.get("last_read_ts")
 
     if not last_read_ts:
-        last_read_ts = datetime.now(timezone.utc).replace(tzinfo=None)
+        last_read_ts = datetime.now(UTC).replace(tzinfo=None)
 
     res = read_status.update_one(
         {"conversation_id": conversation_id, "user_id": user_id},

@@ -49,7 +49,7 @@ avg_ms = sum(run_times) / len(run_times)
 print(f"DUREE_MS={avg_ms:.0f}")
 
 # Afficher les sender_ids trouvés par Spark
-spark_sender_ids = sorted(set(str(r["sender_id"]) for r in spark_rows))
+spark_sender_ids = sorted({str(r["sender_id"]) for r in spark_rows})
 print(f"SPARK_SENDER_IDS={spark_sender_ids}")
 print(f"SPARK_ROWS={len(spark_rows)}")
 

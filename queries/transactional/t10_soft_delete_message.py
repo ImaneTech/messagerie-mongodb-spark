@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -38,7 +38,7 @@ def run(message_id=None):
             "$set": {
                 "deleted": True,
                 "content": "Ce message a été supprimé.",
-                "deleted_at": datetime.now(timezone.utc).replace(tzinfo=None),
+                "deleted_at": datetime.now(UTC).replace(tzinfo=None),
             }
         },
     )

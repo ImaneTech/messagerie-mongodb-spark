@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -27,7 +27,7 @@ def run(conversation_id=None, sender_id=None, content="Message éphémère", ttl
         conversation_id = conv["_id"]
         sender_id = conv["participants"][0]["user_id"]
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     expire_at = now + timedelta(seconds=ttl_seconds)
 
     doc = {

@@ -7,8 +7,9 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from pyspark.sql import functions as F
-from spark.spark_session import get_spark_session
+
 from spark.comparaison.timing import record_spark_timing
+from spark.spark_session import get_spark_session
 
 # --- Initialisation de la Session Spark ---
 t_session_start = time.time()

@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from config.settings import COLLECTIONS
 from queries.utils import get_db
@@ -31,7 +31,7 @@ def run(message_id=None, reporter_id=None, reason="spam"):
         u = users.find_one()
         reporter_id = u["_id"] if u else "usr_anonymous"
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     report_doc = {
         "_id": f"rep_{uuid.uuid4().hex[:10]}",
         "message_id": message_id,

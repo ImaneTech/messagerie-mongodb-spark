@@ -25,8 +25,8 @@ def init_replica_set():
             serverSelectionTimeoutMS=5000,
         )
         admin = client.admin
-    except Exception as e:
-        print(f"[ERREUR] Impossible de joindre mongo1 en direct : {e}")
+    except PyMongoError as exc:
+        print(f"[ERREUR] Impossible de joindre mongo1 en direct : {type(exc).__name__}")
         return False
 
     config = {
@@ -48,8 +48,8 @@ def init_replica_set():
         try:
             admin.command("replSetInitiate", config)
             print("[OK] Commande replSetInitiate exécutée avec succès.")
-        except Exception as e:
-            print(f"[ERREUR] Échec de replSetInitiate : {e}")
+        except PyMongoError as exc:
+            print(f"[ERREUR] Échec de replSetInitiate : {type(exc).__name__}")
             return False
 
     # Attente de la stabilisation du Primaire
@@ -60,8 +60,8 @@ def init_replica_set():
             if hello.get("isWritablePrimary"):
                 print(f"[OK] Nœud primaire confirmé : {hello.get('primary', 'mongo1')}")
                 return True
-        except Exception:
-            pass
+        except PyMongoError as exc:
+            print(f"[INFO] Primaire non confirmé : {type(exc).__name__}")
         time.sleep(1)
 
     print("[WARN] Le primaire n'a pas été confirmé dans le délai imparti.")

@@ -2,7 +2,7 @@
 
 import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from faker import Faker
 
@@ -22,7 +22,7 @@ def generate_users(num_users=10000, seed=42):
     user_ids = [f"usr_{uuid.uuid4().hex[:12]}" for _ in range(num_users)]
     used_pseudos = set()
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
 
     for i, uid in enumerate(user_ids):
         # Pseudo unique
@@ -92,7 +92,7 @@ def generate_conversations(users, num_groups=200, num_direct=7800, seed=42):
 
     user_ids = [u["_id"] for u in users]
     conversations = []
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
 
     # 1. Conversations privées
     direct_pairs = set()
@@ -170,7 +170,7 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
         Faker.seed(seed)
 
     messages = []
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
 
     # Index created_at par user_id pour vérification rapide
     user_created = {u["_id"]: u["created_at"] for u in users}
@@ -224,8 +224,7 @@ def generate_messages(conversations, users, target_count=85000, seed=42):
 
         for m_idx in range(n_msgs):
             current_ts += timedelta(seconds=random.randint(1, max(2, step_seconds * 2)))
-            if current_ts > max_ts:
-                current_ts = max_ts
+            current_ts = min(current_ts, max_ts)
 
             sender_id = random.choice(conv_participants)
 
