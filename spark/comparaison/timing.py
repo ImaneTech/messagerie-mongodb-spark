@@ -1,9 +1,7 @@
 """Persistence of Spark comparison timings for the dashboard benchmark."""
 
 import csv
-import os
 from pathlib import Path
-
 
 FIELDNAMES = ["query_id", "spark_avg_ms", "spark_session_ms"]
 

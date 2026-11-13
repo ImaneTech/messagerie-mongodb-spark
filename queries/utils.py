@@ -1,7 +1,6 @@
 """Fonctions utilitaires pour l'accès MongoDB et le chronométrage des requêtes."""
 
 import csv
-import json
 import os
 import time
 

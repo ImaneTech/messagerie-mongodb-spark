@@ -79,13 +79,11 @@ messagerie-mongodb-spark/
 │   └── load_data.py
 ├── machine-a/               # Orchestration Docker Compose VM1 (mongo1 + spark-master)
 │   ├── docker-compose.yml
-│   └── .env.example
 ├── machine-b/               # Orchestration Docker Compose VM2 (mongo2 + spark-worker1)
 │   ├── docker-compose.yml
-│   └── .env.example
 ├── machine-c/               # Orchestration Docker Compose VM3 (mongo3 + spark-worker2)
 │   ├── docker-compose.yml
-│   └── .env.example
+│
 ├── queries/                 # Implémentation PyMongo des requêtes T01-T15 et A16-A25
 │   ├── transactional/
 │   └── analytical/
@@ -98,7 +96,6 @@ messagerie-mongodb-spark/
 │   ├── spark_session.py
 │   ├── jobs/
 │   └── comparaison/
-├── .env.example
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -128,7 +125,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Aucun fichier .env n'est requis : config/settings.py utilise les IPs fixes par défaut.
+# Aucun fichier .env n'est requis : config/settings.py contient les IPs fixes du cluster.
 ./scripts/cluster_up.sh a
 # ou : cd machine-a && docker compose up -d
 ```
