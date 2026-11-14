@@ -158,6 +158,23 @@ Les fichiers `native_vs_spark.csv`, `index_test.csv`,
 produits par les mesures. Les anciennes valeurs ne doivent pas être
 interprétées comme une nouvelle mesure du cluster.
 
+### Résultats des benchmarks et de la tolérance aux pannes
+
+**Test de tolérance aux pannes**
+Cette capture confirme les trois essais de coupure de `mongo1`, ainsi que la
+moyenne et la médiane de l'interruption des écritures.
+<p align="center"><img src="./screenshots/preuve_failover_resultats_vm.png" width="420" alt="Résultats du failover"></p>
+
+**Comparaison MongoDB natif et Spark**
+Cette capture confirme l'équivalence des résultats A16, A17 et A18 entre les
+requêtes natives et les jobs Spark.
+<p align="center"><img src="./screenshots/preuve_comparaison_csv_vm.png" width="420" alt="Comparaison MongoDB natif et Spark"></p>
+
+**Exécution détaillée du job A16**
+Cette capture montre les volumes journaliers traités par Spark et l'écriture
+des statistiques.
+<p align="center"><img src="./screenshots/preuve_spark_s26_vm.png" width="420" alt="Exécution du job A16 sur Spark"></p>
+
 ### Mesure de la bascule
 
 Le test mesure la reprise des écritures après le changement de primaire. Il
@@ -227,10 +244,6 @@ Cette capture présente les paires d'utilisateurs ayant des contacts communs.
 Cette capture présente les mesures du temps moyen de réponse.
 <p align="center"><img src="./screenshots/preuve_spark_s26_reponse.png" width="420" alt="Résultats S26"></p>
 
-**Exécution du job S26 sur la VM**
-Cette capture montre le résultat du job S26 et l'écriture des statistiques.
-<p align="center"><img src="./screenshots/preuve_spark_s26_vm.png" width="420" alt="Job S26 sur la VM"></p>
-
 **Taux de signalement S29**
 Cette capture présente les expéditeurs et leurs taux de signalement.
 <p align="center"><img src="./screenshots/preuve_spark_s29_signalements.png" width="420" alt="Résultats S29"></p>
@@ -266,10 +279,6 @@ Cette capture compare les niveaux de Write Concern et Read Concern.
 **lection après failover**
 Cette capture montre l'état du Replica Set après l'indisponibilité d'un nud.
 <p align="center"><img src="./screenshots/preuve_election_failover.png" width="420" alt="lection après failover"></p>
-
-**Résultats du failover sur la VM**
-Cette capture présente les trois essais, la moyenne et la médiane de l'interruption des écritures.
-<p align="center"><img src="./screenshots/preuve_failover_resultats_vm.png" width="420" alt="Résultats du failover sur la VM"></p>
 
 **Écritures pendant le failover**
 Cette capture montre les écritures réussies pendant le test de bascule.
