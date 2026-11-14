@@ -3,7 +3,7 @@
 import os
 import sys
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -20,11 +20,11 @@ print(f"SPARK_SESSION_MS={t_session_ms:.0f}")
 
 cutoff_value = os.environ.get("COMPARISON_CUTOFF")
 if cutoff_value:
-    start_30d = datetime.fromisoformat(cutoff_value.replace("Z", "+00:00")).astimezone(UTC).replace(
+    start_30d = datetime.fromisoformat(cutoff_value.replace("Z", "+00:00")).astimezone(timezone.utc).replace(
         tzinfo=None
     )
 else:
-    start_30d = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+    start_30d = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
 print(f"COMPARISON_CUTOFF={start_30d.isoformat()}Z")
 
 # --- Exécution de 3 runs Spark pour calcul de moyenne ---
