@@ -34,3 +34,4 @@ load_err.txt
 *.tmp
 *.log
 nul
+benchmarks_results.zip
