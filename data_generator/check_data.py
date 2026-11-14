@@ -36,16 +36,46 @@ def _check_data():
     checks.append(("messages >= 80000", msgs_count >= 80000, msgs_count))
     checks.append(("reports >= 1000", reports_count >= 1000, reports_count))
 
-    # 2. read_status count == total participants
-    total_participants = sum(
-        c["participants_count"] for c in db.conversations.find({}, {"participants_count": 1})
-    )
+    # 2. One read status must exist for every conversation participant.
+    participant_pairs = set()
+    declared_participants = 0
+    for conversation in db.conversations.find(
+        {}, {"_id": 1, "participants": 1, "participants_count": 1}
+    ):
+        participants = conversation.get("participants", [])
+        declared_count = conversation.get("participants_count")
+        declared_participants += declared_count if isinstance(declared_count, int) else len(participants)
+        participant_pairs.update(
+            (conversation["_id"], participant["user_id"])
+            for participant in participants
+            if "user_id" in participant
+        )
+
     read_status_count = db.read_status.count_documents({})
+    read_status_pairs = {
+        (status["conversation_id"], status["user_id"])
+        for status in db.read_status.find({}, {"conversation_id": 1, "user_id": 1})
+        if "conversation_id" in status and "user_id" in status
+    }
+    missing_statuses = participant_pairs - read_status_pairs
+    orphan_statuses = read_status_pairs - participant_pairs
+    duplicate_statuses = read_status_count - len(read_status_pairs)
     checks.append(
         (
             "read_status == participants",
-            read_status_count == total_participants,
-            f"{read_status_count} vs {total_participants}",
+            not missing_statuses and not orphan_statuses and not duplicate_statuses,
+            (
+                f"statuses={read_status_count}, participants={len(participant_pairs)}, "
+                f"missing={len(missing_statuses)}, orphan={len(orphan_statuses)}, "
+                f"duplicates={duplicate_statuses}"
+            ),
+        )
+    )
+    checks.append(
+        (
+            "participants_count matches participants",
+            declared_participants == len(participant_pairs),
+            f"declared={declared_participants} vs actual={len(participant_pairs)}",
         )
     )
 

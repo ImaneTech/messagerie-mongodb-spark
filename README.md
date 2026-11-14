@@ -218,6 +218,11 @@ Cette capture montre l'initialisation de `rs0` et l'élection du primaire.
 Cette capture présente les volumes obtenus dans les collections principales.
 <p align="center"><img src="./screenshots/preuve_comptage_donnees.png" width="420" alt="Comptage des collections"></p>
 
+**Vérification du cluster MongoDB et Spark**
+Cette capture confirme que le Replica Set MongoDB est opérationnel avec un primaire et deux
+secondaires, et que les deux workers Spark sont connectés et actifs.
+<p align="center"><img src="./screenshots/preuve_verification_cluster.png" width="420" alt="Vérification du Replica Set MongoDB et du cluster Spark"></p>
+
 **Tests des index T4 et T6**
 Cette capture compare les plans et les temps avec et sans index.
 <p align="center"><img src="./screenshots/preuve_tests_index.png" width="420" alt="Tests des index T4 et T6"></p>
