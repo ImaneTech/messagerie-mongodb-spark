@@ -227,6 +227,10 @@ Cette capture présente les paires d'utilisateurs ayant des contacts communs.
 Cette capture présente les mesures du temps moyen de réponse.
 <p align="center"><img src="./screenshots/preuve_spark_s26_reponse.png" width="420" alt="Résultats S26"></p>
 
+**Exécution du job S26 sur la VM**
+Cette capture montre le résultat du job S26 et l'écriture des statistiques.
+<p align="center"><img src="./screenshots/preuve_spark_s26_vm.png" width="420" alt="Job S26 sur la VM"></p>
+
 **Taux de signalement S29**
 Cette capture présente les expéditeurs et leurs taux de signalement.
 <p align="center"><img src="./screenshots/preuve_spark_s29_signalements.png" width="420" alt="Résultats S29"></p>
@@ -251,6 +255,10 @@ Cette capture présente la mesure Spark de l'analyse A18.
 Cette capture résume les temps et la cohérence des résultats A16 à A18.
 <p align="center"><img src="./screenshots/preuve_comparaison_native_spark.png" width="420" alt="Comparaison native et Spark"></p>
 
+**Comparaison finale sur la VM**
+Cette capture confirme que les résultats A16, A17 et A18 sont cohérents entre MongoDB et Spark.
+<p align="center"><img src="./screenshots/preuve_comparaison_vm.png" width="420" alt="Comparaison finale sur la VM"></p>
+
 **Test de cohérence des écritures**
 Cette capture compare les niveaux de Write Concern et Read Concern.
 <p align="center"><img src="./screenshots/preuve_coherence_write_concern.png" width="420" alt="Test de cohérence"></p>
@@ -258,6 +266,18 @@ Cette capture compare les niveaux de Write Concern et Read Concern.
 **lection après failover**
 Cette capture montre l'état du Replica Set après l'indisponibilité d'un nud.
 <p align="center"><img src="./screenshots/preuve_election_failover.png" width="420" alt="lection après failover"></p>
+
+**Résultats du failover sur la VM**
+Cette capture présente les trois essais, la moyenne et la médiane de l'interruption des écritures.
+<p align="center"><img src="./screenshots/preuve_failover_resultats_vm.png" width="420" alt="Résultats du failover sur la VM"></p>
+
+**Écritures pendant le failover**
+Cette capture montre les écritures réussies pendant le test de bascule.
+<p align="center"><img src="./screenshots/preuve_failover_ecritures_vm.png" width="420" alt="Écritures pendant le failover"></p>
+
+**Fichier de résultats du failover**
+Cette capture montre le fichier CSV généré après le test.
+<p align="center"><img src="./screenshots/preuve_failover_csv_vm.png" width="420" alt="Fichier de résultats du failover"></p>
 
 ### Tableau de bord
 
