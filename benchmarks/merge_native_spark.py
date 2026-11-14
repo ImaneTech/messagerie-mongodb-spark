@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Module : benchmarks.merge_native_spark
 Projet : Messagerie Distribuée Haute Performance (MongoDB & Apache Spark)
@@ -18,7 +19,7 @@ import shutil
 import statistics
 import sys
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from pymongo import MongoClient
@@ -88,9 +89,9 @@ def get_native_result(query_id):
         if cutoff_value:
             start_30d = datetime.fromisoformat(
                 cutoff_value.replace("Z", "+00:00")
-            ).astimezone(UTC).replace(tzinfo=None)
+            ).astimezone(timezone.utc).replace(tzinfo=None)
         else:
-            start_30d = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+            start_30d = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
 
         if query_id == "A16":
             pipeline = [
@@ -169,16 +170,14 @@ def compare(native_res, spark_res, query_id):
         return "DIFFERENT", "Spark result empty (collection absente ou vide)"
 
     if query_id == "A16":
-        # Comparer le total de messages et le nombre de jours
         native_total = sum(native_res.values())
         spark_total = sum(spark_res.values())
         native_days = len(native_res)
         spark_days = len(spark_res)
         print(f"  A16 native: {native_days} jours, {native_total} messages")
         print(f"  A16 spark : {spark_days} jours, {spark_total} messages")
-        # Tolérance ±1% sur le total (rechargement peut changer légèrement)
         if native_days == spark_days and native_total == spark_total:
-            return "OK", f"jours={native_days}, total={native_total}"
+            return "OK", f"Fenêtre glissante ({native_days}j)"
         else:
             return (
                 "DIFFERENT",
@@ -186,7 +185,6 @@ def compare(native_res, spark_res, query_id):
             )
 
     elif query_id == "A17":
-        # Comparer le top 10 (sender_ids et counts)
         native_top = sorted(native_res.items(), key=lambda x: -x[1])[:10]
         spark_top = sorted(spark_res.items(), key=lambda x: -x[1])[:10]
         print(f"  A17 native top1: {native_top[0] if native_top else 'none'}")
@@ -194,17 +192,16 @@ def compare(native_res, spark_res, query_id):
         native_keys = {k for k, v in native_top}
         spark_keys = {k for k, v in spark_top}
         if native_keys == spark_keys and dict(native_top) == dict(spark_top):
-            return "OK", f"top10 identique, top1={native_top[0]}"
+            return "OK", "OK (Top 10 identique)"
         else:
             diff = native_keys.symmetric_difference(spark_keys)
             return "DIFFERENT", f"senders différents: {diff}"
 
     elif query_id == "A18":
-        # Comparer types et counts
         print(f"  A18 native: {sorted(native_res.items())}")
         print(f"  A18 spark : {sorted(spark_res.items())}")
         if native_res == spark_res:
-            return "OK", f"types identiques: {list(native_res.keys())}"
+            return "OK", f"OK ({len(native_res)} types identiques)"
         return (
             "DIFFERENT",
             f"types différents: native={set(native_res.keys())} spark={set(spark_res.keys())}",
@@ -227,6 +224,8 @@ def main():
         )
 
     rows = []
+    table_data = {}
+    
     for qid in COMPARISON_IDS:
         print(f"\n=== Comparaison {qid} ===")
         native_res = get_native_result(qid)
@@ -238,10 +237,21 @@ def main():
         spark_avg = spark_timings.get(qid, {}).get("spark_avg_ms", None)
         if native_timing is None or spark_avg is None:
             raise RuntimeError(f"Missing timing for {qid}; refusing to write incomplete CSV")
+        
+        native_ms = native_timing['avg_ms']
+        ratio = spark_avg / native_ms if native_ms > 0 else 0.0
+
+        table_data[qid] = {
+            "native": native_ms,
+            "spark": spark_avg,
+            "ratio": f"{ratio:.1f}x",
+            "detail": detail
+        }
+
         rows.append(
             {
                 "query_id": qid,
-                "native_avg_ms": f"{native_timing['avg_ms']:.6f}",
+                "native_avg_ms": f"{native_ms:.6f}",
                 "native_median_ms": f"{native_timing['median_ms']:.6f}",
                 "spark_avg_ms": f"{spark_avg:.6f}",
             }
@@ -254,11 +264,31 @@ def main():
         writer.writerows(rows)
     shutil.copyfile(OUTPUT_CSV, DASHBOARD_CSV)
 
-    print(f"\n=== {OUTPUT_CSV} ===")
-    print(f"{'query_id':<8} {'native_avg_ms':>14} {'spark_avg_ms':>13}")
-    print("-" * 40)
-    for r in rows:
-        print(f"{r['query_id']:<8} {r['native_avg_ms']:>14} {r['spark_avg_ms']:>13}")
+    # Affichage du format visuel structuré demandé
+    descriptions = {
+        "A16": "Volume messages / jour (30j)     ",
+        "A17": "Top 10 utilisateurs actifs       ",
+        "A18": "Répartition par type média       "
+    }
+
+    print("\n" + "=" * 97)
+    print("      BENCHMARK COMPARATIF : MONGODB NATIF (AGGREGATION) VS APACHE PYSPARK               ")
+    print("=" * 97)
+    print("+---------+----------------------------------+-----------------+-----------------+-------+---------------------------+")
+    print("| Requête | Description analytique           | MongoDB (ms)    | PySpark (ms)    | Ratio | Cohérence résultats       |")
+    print("+---------+----------------------------------+-----------------+-----------------+-------+---------------------------+")
+    
+    for qid in COMPARISON_IDS:
+        d = table_data[qid]
+        desc = descriptions[qid]
+        nat_str = f"{d['native']:.2f}".rjust(15)
+        spk_str = f"{d['spark']:.2f}".rjust(15)
+        rat_str = d['ratio'].rjust(5)
+        det_str = d['detail'].ljust(25)
+        print(f"| {qid:<7} | {desc} | {nat_str} | {spk_str} | {rat_str} | {det_str} |")
+        
+    print("+---------+----------------------------------+-----------------+-----------------+-------+---------------------------+")
+    print("Cluster : 3 VMs (1 Master + 2 Workers, 4 vCPU / 4 Go RAM) | Dataset : 83 651 messages | Export : dashboard/")
     print(f"Copie dashboard : {DASHBOARD_CSV}")
 
 
