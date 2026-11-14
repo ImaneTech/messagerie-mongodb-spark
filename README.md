@@ -245,6 +245,11 @@ Cette capture montre la fin du job Spark et son statut d'exécution.
 Cette capture présente les paires d'utilisateurs ayant des contacts communs.
 <p align="center"><img src="./screenshots/preuve_spark_s27_contacts.png" width="420" alt="Résultats S27"></p>
 
+**Détection de spam S28**
+Cette capture confirme l'exécution du job S28 et l'identification des expéditeurs
+et contenus détectés comme spam.
+<p align="center"><img src="./screenshots/preuve_spark_s28_spam.png" width="420" alt="Détection de spam S28"></p>
+
 **Temps de réponse S26**
 Cette capture présente les mesures du temps moyen de réponse.
 <p align="center"><img src="./screenshots/preuve_spark_s26_reponse.png" width="420" alt="Résultats S26"></p>
