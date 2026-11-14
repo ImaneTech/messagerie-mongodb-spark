@@ -273,10 +273,6 @@ Cette capture présente la mesure Spark de l'analyse A18.
 Cette capture résume les temps et la cohérence des résultats A16 à A18.
 <p align="center"><img src="./screenshots/preuve_comparaison_csv_vm.png" width="420" alt="Comparaison native et Spark"></p>
 
-**Comparaison finale sur la VM**
-Cette capture confirme que les résultats A16, A17 et A18 sont cohérents entre MongoDB et Spark.
-<p align="center"><img src="./screenshots/preuve_comparaison_csv_vm.png" width="420" alt="Comparaison finale sur la VM"></p>
-
 **Test de cohérence des écritures**
 Cette capture compare les niveaux de Write Concern et Read Concern.
 <p align="center"><img src="./screenshots/preuve_coherence_write_concern.png" width="420" alt="Test de cohérence"></p>
