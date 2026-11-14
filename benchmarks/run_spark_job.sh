@@ -39,6 +39,7 @@ PY
 
 SPARK_MASTER_HOST="$(printf '%s\n' "$CONFIG_OUTPUT" | sed -n '1p')"
 MONGO_URI="$(printf '%s\n' "$CONFIG_OUTPUT" | sed -n '2p')"
+COMPARISON_CUTOFF="${COMPARISON_CUTOFF:-}"
 
 if [ -z "$SPARK_MASTER_HOST" ] || [ -z "$MONGO_URI" ]; then
     echo "Erreur: Impossible de lire la configuration depuis config.settings"
@@ -57,7 +58,7 @@ else
     JOB_PATH="/workspace/spark/jobs/${JOB_NAME}.py"
 fi
 
-docker exec -e MONGO_URI="$MONGO_URI" spark-master \
+docker exec -e MONGO_URI="$MONGO_URI" -e COMPARISON_CUTOFF="$COMPARISON_CUTOFF" spark-master \
     /opt/spark/bin/spark-submit \
     --master "spark://$SPARK_MASTER_HOST:7077" \
     --packages org.mongodb.spark:mongo-spark-connector_2.12:10.3.0 \

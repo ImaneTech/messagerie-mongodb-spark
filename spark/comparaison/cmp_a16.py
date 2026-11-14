@@ -18,8 +18,14 @@ spark = get_spark_session("CMP_A16_MessagesPerDay")
 t_session_ms = (time.time() - t_session_start) * 1000
 print(f"SPARK_SESSION_MS={t_session_ms:.0f}")
 
-now = datetime.now(UTC).replace(tzinfo=None)
-start_30d = now - timedelta(days=30)
+cutoff_value = os.environ.get("COMPARISON_CUTOFF")
+if cutoff_value:
+    start_30d = datetime.fromisoformat(cutoff_value.replace("Z", "+00:00")).astimezone(UTC).replace(
+        tzinfo=None
+    )
+else:
+    start_30d = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+print(f"COMPARISON_CUTOFF={start_30d.isoformat()}Z")
 
 # --- Exécution de 3 runs Spark pour calcul de moyenne ---
 spark_times = []

@@ -84,8 +84,13 @@ def get_native_result(query_id):
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     try:
         db = client[MONGO_DB]
-        now = datetime.now(UTC).replace(tzinfo=None)
-        start_30d = now - timedelta(days=30)
+        cutoff_value = os.environ.get("COMPARISON_CUTOFF")
+        if cutoff_value:
+            start_30d = datetime.fromisoformat(
+                cutoff_value.replace("Z", "+00:00")
+            ).astimezone(UTC).replace(tzinfo=None)
+        else:
+            start_30d = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
 
         if query_id == "A16":
             pipeline = [
