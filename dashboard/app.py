@@ -11,7 +11,7 @@ import streamlit as st
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from config.settings import COLLECTIONS, MONGO_DB, MONGO_URI
+from config.settings import COLLECTIONS, IP_A, MONGO_DB, MONGO_URI
 
 st.set_page_config(page_title="Messagerie — Tableau de bord", layout="wide")
 
@@ -183,13 +183,21 @@ def load_csv(filename):
     try:
         df = pd.read_csv(path)
         if filename == "native_vs_spark.csv":
-            expected_columns = ["query_id", "native_avg_ms", "spark_avg_ms"]
-            if list(df.columns) != expected_columns:
+            required_columns = ["query_id", "native_avg_ms", "spark_avg_ms"]
+            optional_columns = ["native_median_ms"]
+            missing_columns = [column for column in required_columns if column not in df.columns]
+            unexpected_columns = [
+                column for column in df.columns
+                if column not in required_columns + optional_columns
+            ]
+            if missing_columns or unexpected_columns:
                 return None, (
                     "Format invalide pour native_vs_spark.csv : "
-                    f"colonnes attendues {expected_columns}, reçues {list(df.columns)}"
+                    f"colonnes requises {required_columns}, reçues {list(df.columns)}"
                 )
-            for column in expected_columns[1:]:
+            for column in required_columns[1:] + [
+                column for column in optional_columns if column in df.columns
+            ]:
                 df[column] = pd.to_numeric(df[column], errors="raise")
         return df, None
     except (OSError, pd.errors.ParserError, UnicodeDecodeError, ValueError) as exc:
@@ -208,6 +216,12 @@ tab_vue, tab_usage, tab_abus, tab_engagement, tab_perf = st.tabs(
         "Engagement",
         "Performance",
     ]
+)
+
+st.sidebar.markdown(
+    f"**Interfaces du cluster**\n\n"
+    f"- [Dashboard Streamlit](http://{IP_A}:8501)\n"
+    f"- [Spark Master](http://{IP_A}:8080)"
 )
 
 # ---------------------------------------------------------------------------
