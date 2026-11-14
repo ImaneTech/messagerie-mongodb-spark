@@ -1,5 +1,5 @@
 query_id,mode,runs,avg_ms,median_ms,p95_ms,docs_examined,keys_examined,n_returned,stage_chain
-T4,index,15,2.04,2.01,2.67,51,51,50,LIMIT > FETCH > IXSCAN
-T4,no_index,15,75.92,74.73,97.12,83651,0,50,SORT > COLLSCAN
-T6,index,15,2.2,2.06,3.19,9,9,9,LIMIT > FETCH > IXSCAN
-T6,no_index,15,18.29,17.71,24.92,8000,0,9,SORT > COLLSCAN
+T4,index,15,1.43,1.4,2.18,51,51,50,LIMIT > FETCH > IXSCAN
+T4,no_index,15,38.5,38.45,44.22,83651,0,50,SORT > COLLSCAN
+T6,index,15,1.07,1.02,1.54,9,9,9,LIMIT > FETCH > IXSCAN
+T6,no_index,15,6.13,6.0,7.62,8000,0,9,SORT > COLLSCAN

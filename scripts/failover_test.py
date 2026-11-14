@@ -126,8 +126,27 @@ def stop_container(mode):
 
 
 def run_trial(mode, trial_number):
+    # S'assurer que mongo1 est démarré
+    subprocess.run(["docker", "start", "mongo1"], capture_output=True, text=True)
+    time.sleep(2)
+    
+    # Vérifier simplement s'il est primaire, sinon tenter un stepDown rapide
     if find_primary(MEMBERS) != "mongo1":
+        try:
+            for name, (ip, port) in MEMBERS.items():
+                if name != "mongo1":
+                    c = MongoClient(ip, port, serverSelectionTimeoutMS=1000)
+                    if c.admin.command("hello").get("isWritablePrimary"):
+                        c.admin.command("replSetStepDown", 10)
+                    c.close()
+        except Exception:
+            pass
+        time.sleep(3)
+
+    if not wait_for(lambda: find_primary(MEMBERS) == "mongo1", 10):
         raise RuntimeError("mongo1 doit être le primaire au début de chaque essai.")
+
+
 
     client = MongoClient(
         MONGO_URI,
